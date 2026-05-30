@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1a3a6b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="IISER Shifts">
+  <title>IISER Bhopal - Shift Management Login</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/img/pwa-icon-192.png">
+  <link rel="apple-touch-icon" href="/img/pwa-icon-180.png">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-box">
+      <div class="login-logo">
+        <img src="/img/iiserb-logo.png" alt="IISER Bhopal Logo">
+        <h2>IISER Bhopal</h2>
+        <p>Guard Shift Management System</p>
+      </div>
+
+      <div class="login-tabs">
+        <button class="login-tab active" id="tab-admin" onclick="setTab('admin')">Admin Login</button>
+        <button class="login-tab" id="tab-staff" onclick="setTab('staff')">Staff Login</button>
+      </div>
+
+      <div id="msg"></div>
+
+      <div id="login-panel">
+        <div class="form-group">
+          <label class="form-label" id="login-id-label">IISERB Email</label>
+          <input type="text" id="login-id" class="form-control" placeholder="admin@iiserb.ac.in" autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="password" class="form-control" placeholder="Password" autocomplete="current-password">
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:6px;" onclick="doLogin()">Sign In</button>
+        <button class="link-btn" type="button" onclick="showResetForm()">Forgot password?</button>
+      </div>
+
+      <div id="reset-panel" class="reset-panel">
+        <div class="card-header" id="reset-title">Reset Password</div>
+        <p class="reset-copy" id="reset-copy"></p>
+        <div class="form-group" id="reset-email-group">
+          <label class="form-label">Registered Email</label>
+          <input type="email" id="reset-email" class="form-control" placeholder="admin@iiserb.ac.in" autocomplete="email">
+        </div>
+        <div class="form-group" id="reset-phone-group">
+          <label class="form-label">Phone Number</label>
+          <input type="tel" id="reset-phone" class="form-control" placeholder="Enter registered phone number">
+        </div>
+        <div class="form-group reset-code-step">
+          <label class="form-label">OTP</label>
+          <input type="text" id="reset-otp" class="form-control" placeholder="Enter OTP" inputmode="numeric" maxlength="6">
+        </div>
+        <div class="form-group reset-code-step">
+          <label class="form-label">New Password</label>
+          <input type="password" id="reset-password" class="form-control" placeholder="New password" autocomplete="new-password">
+        </div>
+        <button class="btn btn-primary" id="request-reset-btn" style="width:100%;" onclick="requestPasswordReset()">Send OTP</button>
+        <button class="btn btn-primary reset-code-step" id="complete-reset-btn" style="width:100%;" onclick="resetPassword()">Reset Password</button>
+        <button class="link-btn" type="button" onclick="showLoginForm()">Back to login</button>
+      </div>
+    </div>
+  </div>
+  <script src="/js/pwa.js"></script>
+  <script src="/js/login.js"></script>
+</body>
+</html>

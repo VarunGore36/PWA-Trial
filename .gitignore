@@ -1,0 +1,15 @@
+node_modules/
+
+sessions/
+
+# Database 
+shift.db
+shift.db-shm
+shift.db-wal
+
+.env
+
+*.log
+
+.DS_Store
+Thumbs.db

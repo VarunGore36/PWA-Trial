@@ -1,0 +1,78 @@
+{
+  "name": "IISER Bhopal Shift Management",
+  "short_name": "IISER Shifts",
+  "description": "Guard shift management for IISER Bhopal staff and administrators.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#f4f6fb",
+  "theme_color": "#1a3a6b",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/img/pwa-icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/pwa-icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/pwa-icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/pwa-icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/pwa-icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/pwa-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/img/pwa-icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Admin Dashboard",
+      "short_name": "Admin",
+      "url": "/admin",
+      "icons": [{ "src": "/img/pwa-icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Shifts",
+      "short_name": "Staff",
+      "url": "/staff",
+      "icons": [{ "src": "/img/pwa-icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

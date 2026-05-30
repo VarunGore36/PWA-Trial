@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Worker Detail – IISER Shift</title>
+  <meta name="theme-color" content="#1a3a6b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="IISER Shifts">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/img/pwa-icon-192.png">
+  <link rel="apple-touch-icon" href="/img/pwa-icon-180.png">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-brand">
+    <img src="/img/iiserb-logo.png" alt="IISER Bhopal Logo">
+    <span>Worker Detail</span>
+  </div>
+  <div class="navbar-actions">
+    <a href="/admin" class="btn btn-outline btn-sm" style="color:#fff;border-color:rgba(255,255,255,0.4);">← Back</a>
+    <button class="btn-logout" onclick="logout()">Logout</button>
+  </div>
+</nav>
+
+<div class="page-wrapper container">
+
+  <div id="worker-header" class="card" style="margin-bottom:20px;"></div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="showTab('schedule', this)">Schedule</button>
+    <button class="tab-btn" onclick="showTab('confirmations', this)">Confirmations</button>
+    <button class="tab-btn" onclick="showTab('leaves', this)">Leaves</button>
+    <button class="tab-btn" onclick="showTab('profile', this)">Edit Profile</button>
+    <button class="tab-btn" onclick="showTab('edit', this)">Edit Schedule</button>
+  </div>
+
+  <div class="tab-content active" id="tab-schedule">
+    <div class="card">
+      <div class="card-header">Monthly Schedule & Stats</div>
+      <div id="stats-row" style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;"></div>
+      <div class="table-wrap" id="schedule-table"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-confirmations">
+    <div class="card">
+      <div class="card-header">Shift Confirmation Status</div>
+      <div class="table-wrap" id="confirm-table"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-leaves">
+    <div class="card">
+      <div class="card-header">Leave Requests</div>
+      <div id="leaves-table"></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-profile">
+    <div class="card" style="max-width:520px;">
+      <div class="card-header">Edit Worker Details</div>
+      <div id="profile-edit-msg"></div>
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" id="profile-name" class="form-control">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone Number</label>
+        <input type="tel" id="profile-phone" class="form-control">
+      </div>
+      <div class="form-group">
+        <label class="form-label">SSID</label>
+        <input type="text" id="profile-ssid" class="form-control">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="profile-email" class="form-control">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Designation</label>
+        <select id="profile-designation" class="form-control">
+          <option value="SG">Security Guard (SG)</option>
+          <option value="DSG">Deputy Security Guard (DSG)</option>
+          <option value="SS">Senior Supervisor (SS)</option>
+          <option value="LSG">Lady Security Guard (LSG)</option>
+          <option value="GM">Gunman (GM)</option>
+          <option value="FSG">Fire Security Guard (FSG)</option>
+          <option value="I/C">Shift In-Charge (I/C)</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="saveProfileEdit()">Save Profile</button>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-edit">
+    <div class="card" style="max-width:480px;">
+      <div class="card-header">Edit Schedule Entry</div>
+      <div id="edit-msg"></div>
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="date" id="edit-date" class="form-control">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Shift</label>
+        <select id="edit-shift" class="form-control">
+          <option value="A">A – Morning</option>
+          <option value="B">B – Noon</option>
+          <option value="C">C – Evening</option>
+          <option value="W">W – Weekly Off</option>
+          <option value="N">N – No Work</option>
+          <option value="F">F – Absent/Leave</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="remove-worker-modal">
+  <div class="modal">
+    <div class="modal-header">Remove Worker</div>
+    <div id="remove-worker-msg"></div>
+    <div class="alert alert-error">
+      Warning: removing this worker cannot be undone. The worker and their schedule, leave, confirmation, and attendance records will be removed from the active database.
+    </div>
+    <div class="form-group">
+      <label class="form-label">Reason for Removing</label>
+      <textarea id="remove-reason" class="form-control" rows="4" placeholder="State the reason for removing this worker"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeRemoveWorkerModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmRemoveWorker()">Confirm Remove</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/logout-confirm.js"></script>
+<script src="/js/pwa.js"></script>
+<script src="/js/worker-detail.js"></script>
+</body>
+</html>
