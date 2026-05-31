@@ -6,6 +6,34 @@ const BUNDLED_DATA_DIR = path.join(__dirname, 'data');
 const DATA_DIR = process.env.DATA_DIR || BUNDLED_DATA_DIR;
 const DB_PATH = path.join(DATA_DIR, 'database.json');
 const TEMP_ROSTER_PATH = path.join(__dirname, 'AutoRoster from May to June - Sheet1.tsv');
+const IST_OFFSET_MINUTES = 330;
+const CONFIRMABLE_SHIFTS = ['A', 'B', 'C', 'G'];
+const SHIFT_STARTS = {
+  A: { label: 'Morning', time: '06:00' },
+  B: { label: 'Noon', time: '14:00' },
+  C: { label: 'Evening', time: '22:00' },
+  G: { label: 'General', time: '09:00' }
+};
+
+function isConfirmableShift(shift) {
+  return CONFIRMABLE_SHIFTS.includes(String(shift || '').toUpperCase());
+}
+
+function istDateString(date = new Date()) {
+  return new Date(date.getTime() + IST_OFFSET_MINUTES * 60 * 1000).toISOString().slice(0, 10);
+}
+
+function shiftStartUtcMs(date, shift) {
+  const definition = SHIFT_STARTS[String(shift || '').toUpperCase()];
+  if (!definition) return null;
+  return Date.parse(`${date}T${definition.time}:00:00+05:30`);
+}
+
+function shiftDisplayName(shift) {
+  const normalized = String(shift || '').toUpperCase();
+  const definition = SHIFT_STARTS[normalized];
+  return definition ? `${definition.label} (${normalized})` : normalized;
+}
 
 function normalizeName(value) {
   return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
@@ -116,6 +144,11 @@ function emptyDatabase() {
     attendance: [],
     removedWorkers: [],
     passwordResetCodes: [],
+    pushSubscriptions: [],
+    sentShiftNotifications: [],
+    pushVapidKeys: null,
+    nextCommunityPostId: 1,
+    communityPosts: [],
     nextProfileChangeRequestId: 1,
     profileChangeRequests: []
   };
@@ -154,6 +187,27 @@ async function readDb() {
   }
   if (!Array.isArray(db.passwordResetCodes)) {
     db.passwordResetCodes = [];
+    changed = true;
+  }
+  if (!Array.isArray(db.pushSubscriptions)) {
+    db.pushSubscriptions = [];
+    changed = true;
+  }
+  if (!Array.isArray(db.sentShiftNotifications)) {
+    db.sentShiftNotifications = [];
+    changed = true;
+  }
+  if (db.pushVapidKeys === undefined) {
+    db.pushVapidKeys = null;
+    changed = true;
+  }
+  if (!Array.isArray(db.communityPosts)) {
+    db.communityPosts = [];
+    changed = true;
+  }
+  if (!db.nextCommunityPostId) {
+    const maxId = db.communityPosts.reduce((max, item) => Math.max(max, item.id || 0), 0);
+    db.nextCommunityPostId = maxId + 1;
     changed = true;
   }
   if (!db.nextProfileChangeRequestId) {
@@ -511,7 +565,7 @@ async function changePassword({ userId, currentPassword, newPassword }) {
 
 async function getDashboardStats() {
   const db = await readDb();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = istDateString();
   const todayConfirmations = new Map(
     db.confirmations
       .filter(item => item.date === today)
@@ -522,10 +576,10 @@ async function getDashboardStats() {
     pendingLeaves: db.leaves.filter(item => item.status === 'pending').length,
     pendingConfirm: db.schedules.filter(item =>
       item.date === today &&
-      ['A', 'B', 'C'].includes(item.shift) &&
+      isConfirmableShift(item.shift) &&
       todayConfirmations.get(item.userId) !== 'confirmed'
     ).length,
-    todayShifts: db.schedules.filter(item => item.date === today && ['A', 'B', 'C'].includes(item.shift)).length
+    todayShifts: db.schedules.filter(item => item.date === today && isConfirmableShift(item.shift)).length
   };
 }
 
@@ -568,7 +622,7 @@ async function staffSchedule(userId, from, to) {
       return {
         date: item.date,
         shift: item.shift,
-        confirmation: confirmation ? confirmation.status : (['A', 'B', 'C'].includes(item.shift) ? 'pending' : null)
+        confirmation: confirmation ? confirmation.status : (isConfirmableShift(item.shift) ? 'pending' : null)
       };
     });
 }
@@ -576,21 +630,31 @@ async function staffSchedule(userId, from, to) {
 async function pendingNotifications(userId) {
   const db = await readDb();
   return db.schedules
-    .filter(item => item.userId === Number(userId) && ['A', 'B', 'C'].includes(item.shift))
+    .filter(item => item.userId === Number(userId) && isConfirmableShift(item.shift))
     .filter(item => {
       const confirmation = db.confirmations.find(c => c.userId === Number(userId) && c.date === item.date);
       return !confirmation || confirmation.status === 'pending';
     })
     .sort((a, b) => a.date.localeCompare(b.date))
-    .map(({ date, shift }) => ({ date, shift }));
+    .map(({ date, shift }) => {
+      const startAt = shiftStartUtcMs(date, shift);
+      return {
+        date,
+        shift,
+        label: shiftDisplayName(shift),
+        startAt: startAt ? new Date(startAt).toISOString() : null,
+        reminderAt: startAt ? new Date(startAt - 30 * 60 * 1000).toISOString() : null
+      };
+    });
 }
 
 async function confirmShift({ userId, date, status }) {
   const db = await readDb();
   const numericId = Number(userId);
+  if (date !== istDateString()) return 'not-today';
   const schedule = db.schedules.find(item => item.userId === numericId && item.date === date);
   if (!schedule) return 'missing';
-  if (['W', 'N'].includes(schedule.shift)) return 'blocked';
+  if (!isConfirmableShift(schedule.shift)) return 'blocked';
   const existing = db.confirmations.find(item => item.userId === numericId && item.date === date);
   if (existing) {
     existing.status = status;
@@ -600,6 +664,200 @@ async function confirmShift({ userId, date, status }) {
   }
   await writeDb(db);
   return 'ok';
+}
+
+async function savePushSubscription(userId, subscription) {
+  const db = await readDb();
+  const numericId = Number(userId);
+  if (!subscription || !subscription.endpoint) return false;
+
+  const existing = db.pushSubscriptions.find(item => item.endpoint === subscription.endpoint);
+  const payload = {
+    userId: numericId,
+    endpoint: subscription.endpoint,
+    keys: subscription.keys || {},
+    updatedAt: new Date().toISOString()
+  };
+
+  if (existing) Object.assign(existing, payload);
+  else db.pushSubscriptions.push({ ...payload, createdAt: new Date().toISOString() });
+
+  await writeDb(db);
+  return true;
+}
+
+async function removePushSubscription(userId, endpoint) {
+  const db = await readDb();
+  const numericId = Number(userId);
+  const before = db.pushSubscriptions.length;
+  db.pushSubscriptions = db.pushSubscriptions.filter(item =>
+    !(item.userId === numericId && (!endpoint || item.endpoint === endpoint))
+  );
+  if (db.pushSubscriptions.length !== before) await writeDb(db);
+  return true;
+}
+
+async function removePushSubscriptionByEndpoint(endpoint) {
+  const db = await readDb();
+  const before = db.pushSubscriptions.length;
+  db.pushSubscriptions = db.pushSubscriptions.filter(item => item.endpoint !== endpoint);
+  if (db.pushSubscriptions.length !== before) await writeDb(db);
+}
+
+async function getPushSubscriptionsForUsers(userIds) {
+  const db = await readDb();
+  const allowed = new Set(userIds.map(id => Number(id)));
+  return db.pushSubscriptions.filter(item => allowed.has(item.userId));
+}
+
+async function getDueShiftNotifications(now = new Date()) {
+  const db = await readDb();
+  const nowMs = now.getTime();
+  const sent = new Set(db.sentShiftNotifications.map(item => item.key));
+  const subscriptionsByUser = new Map();
+
+  db.pushSubscriptions.forEach(subscription => {
+    if (!subscriptionsByUser.has(subscription.userId)) subscriptionsByUser.set(subscription.userId, []);
+    subscriptionsByUser.get(subscription.userId).push(subscription);
+  });
+
+  return db.schedules
+    .filter(item => isConfirmableShift(item.shift))
+    .map(item => {
+      const startMs = shiftStartUtcMs(item.date, item.shift);
+      if (!startMs) return null;
+      const key = `${item.userId}|${item.date}|${item.shift}|${startMs}`;
+      return { ...item, startMs, reminderMs: startMs - 30 * 60 * 1000, key };
+    })
+    .filter(Boolean)
+    .filter(item => nowMs >= item.reminderMs && nowMs < item.startMs && !sent.has(item.key))
+    .filter(item => {
+      const confirmation = db.confirmations.find(c => c.userId === item.userId && c.date === item.date);
+      return !confirmation || confirmation.status === 'pending';
+    })
+    .filter(item => subscriptionsByUser.has(item.userId))
+    .map(item => {
+      const user = db.users.find(candidate => candidate.id === item.userId);
+      return {
+        key: item.key,
+        userId: item.userId,
+        workerName: user ? user.name : 'Staff',
+        date: item.date,
+        shift: item.shift,
+        label: shiftDisplayName(item.shift),
+        startAt: new Date(item.startMs).toISOString(),
+        subscriptions: subscriptionsByUser.get(item.userId)
+      };
+    });
+}
+
+async function markShiftNotificationSent(notificationKey) {
+  const db = await readDb();
+  if (!db.sentShiftNotifications.some(item => item.key === notificationKey)) {
+    db.sentShiftNotifications.push({ key: notificationKey, sentAt: new Date().toISOString() });
+    await writeDb(db);
+  }
+}
+
+async function ensurePushVapidKeys(createKeys) {
+  const db = await readDb();
+  if (!db.pushVapidKeys || !db.pushVapidKeys.publicKey || !db.pushVapidKeys.privateKey) {
+    db.pushVapidKeys = createKeys();
+    await writeDb(db);
+  }
+  return db.pushVapidKeys;
+}
+
+function canSeeCommunityPost(user, post) {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  if (post.target === 'all') return true;
+  return post.target === user.designation;
+}
+
+function publicCommunityPost(post, viewerId) {
+  const reactions = post.reactions || [];
+  const up = reactions.filter(item => item.reaction === 'up').length;
+  const down = reactions.filter(item => item.reaction === 'down').length;
+  const mine = reactions.find(item => item.userId === Number(viewerId));
+  return {
+    id: post.id,
+    text: post.text,
+    isAlert: Boolean(post.isAlert),
+    target: post.target,
+    media: post.media || [],
+    authorName: post.authorName || 'Admin',
+    createdAt: post.createdAt,
+    reactionCounts: { up, down },
+    myReaction: mine ? mine.reaction : null
+  };
+}
+
+async function createCommunityPost({ authorId, text, isAlert, target, media }) {
+  const db = await readDb();
+  const author = db.users.find(user => user.id === Number(authorId) && user.role === 'admin');
+  if (!author) return 'forbidden';
+  const cleanText = String(text || '').trim();
+  const cleanMedia = Array.isArray(media) ? media : [];
+  if (!cleanText && !cleanMedia.length) return 'empty';
+
+  const validTargets = ['all', ...new Set(db.users.filter(user => user.role === 'staff').map(user => user.designation).filter(Boolean))];
+  const cleanTarget = validTargets.includes(target) ? target : 'all';
+
+  const post = {
+    id: db.nextCommunityPostId++,
+    authorId: author.id,
+    authorName: author.name,
+    text: cleanText,
+    isAlert: Boolean(isAlert),
+    target: cleanTarget,
+    media: cleanMedia,
+    reactions: [],
+    createdAt: new Date().toISOString()
+  };
+  db.communityPosts.push(post);
+  await writeDb(db);
+  return post;
+}
+
+async function listCommunityPosts(userId) {
+  const db = await readDb();
+  const user = db.users.find(item => item.id === Number(userId));
+  return db.communityPosts
+    .filter(post => canSeeCommunityPost(user, post))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .map(post => publicCommunityPost(post, userId));
+}
+
+async function reactToCommunityPost({ userId, postId, reaction }) {
+  const db = await readDb();
+  const numericUserId = Number(userId);
+  const user = db.users.find(item => item.id === numericUserId);
+  if (!user) return 'missing-user';
+  const post = db.communityPosts.find(item => item.id === Number(postId));
+  if (!post || !canSeeCommunityPost(user, post)) return 'missing';
+  if (!['up', 'down'].includes(reaction)) return 'invalid';
+
+  if (!Array.isArray(post.reactions)) post.reactions = [];
+  const existing = post.reactions.find(item => item.userId === numericUserId);
+  if (existing && existing.reaction === reaction) {
+    post.reactions = post.reactions.filter(item => item.userId !== numericUserId);
+  } else if (existing) {
+    existing.reaction = reaction;
+    existing.updatedAt = new Date().toISOString();
+  } else {
+    post.reactions.push({ userId: numericUserId, reaction, updatedAt: new Date().toISOString() });
+  }
+  await writeDb(db);
+  return publicCommunityPost(post, userId);
+}
+
+async function communityRecipients(target) {
+  const db = await readDb();
+  return db.users
+    .filter(user => user.role === 'staff')
+    .filter(user => target === 'all' || user.designation === target)
+    .map(publicUser);
 }
 
 async function createLeave({ userId, date, reason }) {
@@ -651,7 +909,10 @@ async function staffAttendance(userId) {
 
 module.exports = {
   DB_PATH,
+  CONFIRMABLE_SHIFTS,
+  communityRecipients,
   createLeave,
+  createCommunityPost,
   createWorker,
   createProfileChangeRequest,
   changePassword,
@@ -662,21 +923,31 @@ module.exports = {
   findUserBySsid,
   getDashboardStats,
   getSchedulesForRange,
+  getDueShiftNotifications,
+  getPushSubscriptionsForUsers,
   getWorker,
+  ensurePushVapidKeys,
   getProfileChangeRequests,
   leaveAction,
   listWorkers,
+  listCommunityPosts,
+  markShiftNotificationSent,
   pendingNotifications,
   publicUser,
   readDb,
+  removePushSubscription,
+  removePushSubscriptionByEndpoint,
   removeWorker,
+  reactToCommunityPost,
   resetPassword,
   createPasswordResetCode,
   resetPasswordWithCode,
+  savePushSubscription,
   setSchedule,
   staffAttendance,
   staffLeaves,
   staffProfileChangeRequests,
   updateWorkerProfile,
-  staffSchedule
+  staffSchedule,
+  writeDb
 };

@@ -2,6 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const FileStore = require('session-file-store')(session);
 const path = require('path');
+const { startShiftReminderLoop } = require('./services/pushNotifications');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,6 +38,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', require('./routes/auth'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/staff', require('./routes/staff'));
+app.use('/api/community', require('./routes/community'));
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
@@ -45,4 +47,5 @@ app.get('/worker-detail', (req, res) => res.sendFile(path.join(__dirname, 'publi
 
 app.listen(PORT, () => {
   console.log(`IISER Shift Management running at http://localhost:${PORT}`);
+  startShiftReminderLoop();
 });

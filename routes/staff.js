@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
+const { configureWebPush } = require('../services/pushNotifications');
 
 const router = express.Router();
 
@@ -23,7 +24,8 @@ router.post('/confirm-shift', async (req, res) => {
     }
     const result = await db.confirmShift({ userId: req.session.userId, date, status });
     if (result === 'missing') return res.status(404).json({ error: 'No schedule for this date' });
-    if (result === 'blocked') return res.status(400).json({ error: 'Cannot confirm W/N shifts' });
+    if (result === 'not-today') return res.status(400).json({ error: 'Only today\'s shift can be confirmed or declined' });
+    if (result === 'blocked') return res.status(400).json({ error: 'Only A, B, C, and G shifts can be confirmed' });
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -61,6 +63,33 @@ router.get('/my-attendance', async (req, res) => {
 router.get('/notifications', async (req, res) => {
   try {
     res.json(await db.pendingNotifications(req.session.userId));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get('/push-public-key', async (req, res) => {
+  try {
+    res.json({ publicKey: await configureWebPush() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/push-subscription', async (req, res) => {
+  try {
+    const saved = await db.savePushSubscription(req.session.userId, req.body.subscription);
+    if (!saved) return res.status(400).json({ error: 'Valid push subscription required' });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.delete('/push-subscription', async (req, res) => {
+  try {
+    await db.removePushSubscription(req.session.userId, req.body && req.body.endpoint);
+    res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

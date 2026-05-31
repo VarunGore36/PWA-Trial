@@ -54,6 +54,7 @@
       <button class="tab-btn" onclick="showTab('leaves', this)">Leave Requests</button>
       <button class="tab-btn" onclick="showTab('attendance', this)">Attendance</button>
       <button class="tab-btn" onclick="showTab('profile', this)">Profile</button>
+      <button class="tab-btn" onclick="showTab('community', this)">Community</button>
     </div>
 
     <div class="tab-content active" id="tab-schedule">
@@ -63,6 +64,7 @@
           <span><span class="shift-badge shift-A">A</span> Morning</span>
           <span><span class="shift-badge shift-B">B</span> Noon</span>
           <span><span class="shift-badge shift-C">C</span> Evening</span>
+          <span><span class="shift-badge shift-G">G</span> General</span>
           <span><span class="shift-badge shift-W">W</span> Weekly Off</span>
           <span><span class="shift-badge shift-N">N</span> No Work</span>
         </div>
@@ -141,6 +143,13 @@
       <div class="card">
         <div class="card-header">My Profile Change Requests</div>
         <div class="table-wrap" id="profile-request-history"><div class="empty-state">Loading...</div></div>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-community">
+      <div class="card community-feed-card">
+        <div class="card-header">Community Feed</div>
+        <div id="community-feed"><div class="empty-state">Loading...</div></div>
       </div>
     </div>
   </div>

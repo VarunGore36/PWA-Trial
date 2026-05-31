@@ -15,7 +15,7 @@ ID	Name	Role	Tue 	Wed	Thu	Fri 	Sat 	Sun	Mon	Tue	Wed	Thu	Fri	Sat	Sun	Mon	Tue	Wed	
 13	Rekha Vanskar	LSG	A	A	A	N_A	B	B	W	A	A	N_A	N_A	C	C	W	N_C	B	B	B	B	B	W	A	A	A	C	C	C	W	N_C	N_C	N_C	8	7	5	4	20
 14	Zeba Khan	LSG	A	A	A	A	A	A	W	N_A	B	B	B	B	B	W	C	C	C	C	C	C	W	B	B	B	N_B	N_B	N_B	W	A	A	N_A	8	8	6	4	22
 15	Priyanka Shriwas	LSG	C	C	C	C	C	N_C	W	B	B	B	B	B	B	W	A	A	A	A	A	A	W	A	A	N_A	N_A	B	B	W	N_B	C	C	8	8	7	4	23
-16	Priyanka Mewada	LSG	W	A	A	A	A	A	A	W	N_A	A	A	N_A	N_A	C	W	B	B	B	B	B	B	W	C	C	C	C	C	N_C	W	B	B	8	8	6	5	22
+16	Priyanka Mewada	LSG	W	A	A	A	A	A	A	W	N_A	A	A	N_A	N_A	C	W	B	B	B	B	B	B	W	C	C	C	C	C	N_C	W	B	A	9	7	6	5	22
 17	Reena Prajapati	LSG	W	A	A	N_A	N_A	B	B	W	B	B	B	B	B	B	W	C	C	C	C	C	C	W	A	A	A	A	A	A	W	C	N_C	8	8	7	5	23
 18	Mannu Meena	LSG	C	W	A	A	N_A	B	B	B	W	N_B	A	A	A	A	A	W	B	B	B	B	B	N_B	W	N_B	C	C	C	C	C	W	A	8	8	6	5	22
 19	Durga Jharbade	LSG	B	W	C	C	C	N_C	B	B	W	B	B	B	N_B	A	A	W	C	C	C	N_C	N_C	B	W	A	A	A	A	A	A	W	C	8	7	7	5	22
@@ -42,87 +42,87 @@ ID	Name	Role	Tue 	Wed	Thu	Fri 	Sat 	Sun	Mon	Tue	Wed	Thu	Fri	Sat	Sun	Mon	Tue	Wed	
 40	Matadeen	DSG	B	A	A	A	A	W	C	C	C	B	B	B	W	C	N_C	N_C	C	C	C	W	A	A	A	A	C	C	W	B	B	B	B	8	8	9	4	25
 41	Hirdesh Kushwaha	DSG	A	N_A	C	C	C	W	B	B	B	B	C	C	W	A	N_A	B	B	B	B	W	A	A	A	A	A	A	W	C	C	C	C	8	8	9	4	25
 42	Omprakash Puri	DSG	W	B	B	B	B	B	B	W	N_C	C	C	C	C	C	W	A	A	A	A	A	A	W	C	C	B	A	A	A	W	N_A	A	10	7	7	5	24
-43	Rahul Thakur	DSG	W	N_B	B	B	B	B	B	W	B	B	B	B	B	B	W	B	B	B	B	B	B	W	B	B	B	B	B	B	W	B	N_B	0	24	0	5	24
-44	Raj Kumar Pandey	SG	C	B	G	B	B	W	B	B	B	B	B	B	W	A	A	A	A	A	A	W	C	C	N_C	C	C	N_C	W	A	A	A	A	10	9	5	4	25
-45	Pradeep Pandey	SG	B	C	B	B	C	C	W	C	C	C	N_C	N_C	G	W	A	A	A	A	A	A	W	A	A	B	B	B	B	W	C	C	C	8	7	9	4	25
-46	Rajnish Tiwari	SG	W	A	A	A	A	C	C	W	N_A	B	B	B	B	B	W	A	A	A	A	A	A	W	G	C	C	C	C	C	W	B	B	10	7	7	5	25
-47	Shivam Yadav	SG	A	W	A	A	N_A	C	C	C	W	A	A	A	A	A	A	W	B	B	C	C	C	C	W	B	B	B	B	B	B	W	G	9	8	7	5	24
-48	Shekhar Vanskar	SG	A	W	A	A	N_A	G	C	C	W	A	A	A	A	C	C	W	C	B	B	B	B	A	W	B	B	B	C	C	C	W	A	9	7	8	5	25
-49	Sugam Vanskar	SG	N_A	W	A	A	N_A	B	B	B	W	A	A	B	B	B	B	W	B	G	A	A	A	A	W	C	C	C	C	C	C	W	B	8	9	6	5	24
-50	Ravi Kumar	SG	B	B	W	C	C	C	C	C	C	W	A	A	B	B	B	B	W	A	A	A	A	A	C	W	A	A	B	B	N_B	G	W	9	8	7	5	25
-51	Randhir Singh	SG	B	G	W	A	A	A	A	N_A	B	W	A	A	N_A	C	C	C	W	A	A	C	C	C	C	W	B	B	B	B	B	B	W	8	8	7	5	24
-52	Balram	SG	C	C	C	W	A	A	A	A	A	C	W	A	A	A	B	B	B	W	G	N_B	N_C	N_C	C	C	W	B	B	B	B	B	B	8	9	6	4	24
-53	Vijay Kumar Bind	SG	B	B	B	C	W	A	A	A	A	A	A	W	B	B	B	B	B	B	W	A	A	A	A	G	C	W	N_C	C	C	C	C	10	9	6	4	26
-54	Shiv Singh	SG	B	B	B	B	B	B	W	C	C	C	N_C	G	N_C	W	A	N_A	C	C	C	C	W	A	A	A	A	B	B	W	A	A	A	8	8	7	4	24
-55	Bharat Verma	SG	A	W	A	A	A	A	A	C	W	C	C	B	B	N_B	A	W	B	B	B	B	G	A	W	B	B	B	C	N_C	C	W	C	8	9	6	5	24
-56	Manohar Singh	SG	B	W	B	B	N_B	N_B	A	A	W	N_C	C	C	C	C	C	W	N_C	B	B	B	B	B	W	A	A	A	A	A	A	W	C	8	8	6	5	22
-57	Bhagwan Singh	SG	C	W	B	B	A	A	A	A	W	N_A	N_A	C	C	C	C	W	B	B	A	A	A	A	W	B	B	N_B	N_B	B	B	W	C	8	8	6	5	22
-58	Ritesh Tomar	SG	A	W	B	B	B	B	N_B	G	W	A	A	A	B	B	B	W	C	N_C	C	C	C	C	W	B	N_B	N_B	A	A	A	W	A	8	8	5	5	22
-59	Gajendra Singh	SG	A	A	W	C	N_C	A	B	B	B	W	C	C	N_C	N_C	B	B	W	A	A	A	A	A	A	W	B	B	B	N_B	N_B	C	W	9	8	4	5	21
-60	Dharmendra Nagar	SG	B	B	W	A	A	A	A	A	A	W	N_A	B	B	B	B	A	W	C	C	N_C	N_C	B	B	W	N_B	C	C	C	C	C	W	7	8	7	5	22
-61	Nitin Mourya	SG	B	B	W	C	C	N_C	N_C	C	C	W	B	A	A	A	A	A	W	C	B	B	B	B	B	W	G	N_B	N_B	A	A	A	W	8	8	5	5	22
-62	Yogendra Nagar	SG	A	A	W	B	B	B	B	B	A	W	A	A	A	C	C	C	W	C	C	C	N_C	N_C	B	W	N_B	B	B	N_B	N_B	C	W	6	8	7	5	21
-63	Raju Chandravanshi	SG	C	C	C	W	B	B	B	N_B	N_B	B	W	B	N_B	A	A	A	A	W	N_A	C	C	C	C	N_C	W	A	N_A	N_A	B	B	B	5	8	7	4	20
-64	Deshraj Solanki	SG	C	B	B	W	B	B	B	N_B	N_B	G	W	C	C	C	C	C	C	W	N_C	B	B	B	A	A	W	A	A	A	A	A	A	8	8	7	4	24
-65	Sunil Sen	SG	N_B	A	A	W	A	A	N_A	N_A	N_A	C	W	A	A	A	A	N_A	G	W	C	C	C	C	C	C	W	B	B	B	B	B	N_B	8	5	7	4	21
-66	Akash Ahirwar	SG	A	A	C	W	B	B	N_B	A	A	A	W	N_A	C	C	C	C	N_C	W	A	A	A	N_A	N_A	C	W	B	B	B	B	B	B	8	8	6	4	22
-67	Shaitan Singh	SG	B	B	A	W	G	N_A	N_A	B	B	B	W	B	B	N_B	N_B	A	A	W	B	B	N_B	N_B	A	A	W	N_A	A	A	A	A	A	10	9	0	4	20
-68	Prahlad Gaur	SG	B	B	N_B	W	N_B	A	A	A	A	A	W	N_A	B	B	C	B	B	W	A	A	A	N_A	N_A	B	W	C	C	C	C	N_C	N_C	8	7	5	4	20
-69	Neeraj Namdev	SG	N_A	N_A	B	B	W	N_B	A	A	A	A	A	W	C	C	N_B	C	C	C	W	G	N_C	B	B	B	B	W	B	B	A	A	A	8	8	5	4	22
-70	Prahlad Singh	SG	N_C	N_C	N_C	B	W	A	A	A	A	A	A	W	C	N_C	N_C	B	B	B	W	B	B	B	B	A	A	W	N_A	C	C	C	C	8	8	5	4	21
-71	Akhlesh Nagar	SG	N_B	N_B	A	N_A	W	B	B	N_B	N_B	C	C	W	C	C	B	G	A	A	W	B	B	B	B	B	B	W	A	A	A	N_A	N_A	6	9	4	4	20
-72	Sachin Bairagi	SG	A	A	A	A	W	B	B	B	N_B	N_B	C	W	A	N_A	N_A	C	C	C	W	N_C	B	B	B	B	B	W	A	A	A	N_A	N_A	8	8	4	4	20
-73	Lakhan Thakur	SG	B	B	N_B	N_B	W	C	C	C	C	C	C	W	B	A	A	A	A	A	W	A	A	A	N_A	B	B	W	N_B	C	N_C	N_C	B	8	6	7	4	21
-74	Manoj Pal	SG	B	B	B	G	W	A	N_A	A	A	A	A	W	A	A	A	N_A	N_A	C	W	N_A	C	C	C	N_C	C	W	B	B	B	B	B	8	8	5	4	22
-75	Pradeep Nayak	SG	C	C	B	B	W	B	B	B	B	B	B	W	N_A	C	C	C	C	N_C	W	A	A	A	A	A	A	W	G	N_A	N_A	A	A	8	8	6	4	23
-76	Gaurav Prajapati	SG	G	A	A	A	A	W	A	B	B	B	B	N_B	W	N_C	C	C	N_C	C	C	W	C	N_C	B	B	B	B	W	N_B	A	A	A	8	8	5	4	22
-77	Govind Mewada	SG	B	B	N_B	C	C	W	A	A	A	A	C	C	W	B	B	B	B	N_B	C	W	N_C	G	A	A	C	C	W	B	B	C	A	7	8	8	4	24
-78	Deen Dayal Rathore	SG	A	A	A	A	A	W	B	B	B	B	B	B	W	N_B	B	N_C	C	C	C	W	A	A	A	N_A	N_A	G	W	B	N_B	C	C	8	8	5	4	22
-79	Vikash Mewada	SG	C	N_C	N_C	B	B	W	C	C	C	N_C	N_C	C	W	A	A	A	A	A	A	W	N_A	B	N_B	N_B	A	A	W	B	B	B	B	8	7	5	4	20
-80	Pradeep Sallam	SG	N_C	C	C	C	C	W	C	N_C	N_C	N_C	B	A	W	A	C	N_C	B	B	B	W	B	B	B	N_B	N_B	B	W	A	A	A	A	6	8	6	4	20
-81	Ajay Kushwaha	SG	N_A	N_A	A	A	A	W	N_A	B	B	B	B	B	W	B	B	B	C	C	C	W	A	A	A	A	A	N_A	W	G	N_A	C	C	8	8	5	4	22
-82	Rahul Kushwaha	SG	C	C	N_C	B	B	W	A	A	A	A	A	C	W	A	A	B	N_A	N_A	B	W	B	B	B	N_B	C	C	W	B	N_B	A	A	9	8	5	4	22
-83	Manish Thakur	SG	A	N_A	C	N_C	B	W	A	N_A	C	C	C	N_C	W	B	B	A	A	A	A	W	C	B	B	N_B	C	C	W	B	B	N_B	N_B	6	7	7	4	20
-84	Gangaram	SG	A	A	A	A	A	A	W	B	B	B	N_B	N_B	A	W	B	N_B	B	N_B	N_B	A	W	C	C	C	C	C	N_C	W	B	B	B	8	8	5	4	21
-85	Rahul Vanskar	SG	N_B	N_B	N_B	N_B	A	A	W	B	B	B	N_B	N_B	C	W	A	A	A	A	A	A	W	C	C	C	C	C	C	W	B	B	N_B	8	5	7	4	20
-86	Vijay Malviya-(II)	SG	C	C	C	C	C	N_C	W	A	A	A	A	A	A	W	N_A	B	B	B	B	N_B	W	N_B	B	N_B	B	B	B	W	G	N_B	C	6	8	6	4	21
-87	Rambabu Verma	SG	A	A	A	A	A	A	W	B	B	B	B	B	B	W	B	B	N_B	N_B	N_B	C	W	C	C	C	C	N_C	N_C	W	C	C	N_C	6	8	7	4	21
-88	Pradeep Sen	SG	W	A	N_A	N_A	C	C	C	W	A	A	A	A	A	A	W	C	N_C	N_C	B	B	A	W	B	B	B	B	B	N_B	W	B	B	8	9	4	5	21
-89	Vachan Malviya	SG	W	A	N_A	N_A	B	B	B	W	B	B	B	N_B	A	A	W	C	C	N_C	N_C	C	C	W	A	A	A	A	A	N_A	W	B	B	8	8	4	5	20
-90	Kapil Mewada	SG	W	A	A	N_A	N_A	B	B	W	C	N_C	B	A	A	N_A	W	A	A	B	B	B	B	W	C	C	N_C	C	C	C	W	A	A	8	7	6	5	21
-91	Neeraj Sharma	SG	W	B	B	B	N_B	N_B	G	W	A	C	C	C	C	C	W	B	B	B	N_B	N_B	A	W	A	A	A	N_A	C	C	W	A	A	7	6	7	5	21
-92	Akash Maran	SG	W	C	C	N_C	N_C	C	C	W	C	C	C	N_C	N_C	B	W	B	B	B	B	B	B	W	B	A	A	A	A	N_A	W	A	A	6	8	7	5	21
-93	Neelesh Bansal	SG	C	W	C	C	C	N_C	N_C	C	W	B	B	B	N_B	N_B	G	W	A	A	N_A	N_A	B	B	W	A	A	A	A	A	A	W	C	8	5	6	5	20
-94	Robinaman John	SG	A	A	W	C	B	B	B	B	B	W	A	A	N_A	N_A	C	C	W	B	B	B	N_B	C	C	W	A	A	A	N_A	N_A	A	W	8	8	5	5	21
-95	Rajendra Rajput	SG	A	A	W	A	A	A	A	N_A	A	W	B	B	B	B	B	B	W	B	B	N_B	B	N_B	C	W	N_C	C	C	C	C	C	W	7	9	6	5	22
-96	Ghanshyam Verma	SG	B	B	W	A	A	A	N_A	A	G	W	B	B	B	B	B	B	W	C	C	C	N_C	N_C	N_C	W	A	A	A	A	A	N_A	W	9	8	3	5	21
-97	Rajat Manjhi	SG	N_B	B	N_B	N_B	C	C	W	A	A	A	N_A	C	C	W	A	A	A	A	A	A	W	B	B	B	N_B	N_B	B	W	C	C	C	9	5	7	4	21
-98	Dharmendra Chand	SG	W	C	C	C	C	C	C	W	B	N_B	N_B	A	A	A	W	A	N_A	N_A	B	B	B	W	A	A	A	A	N_A	A	W	B	B	9	6	6	5	21
-99	Ramlakhan Ahirwar	SG	W	B	B	B	B	N_B	N_B	W	C	C	C	N_C	A	G	W	C	C	N_C	N_C	B	B	W	A	A	A	A	A	A	W	B	B	7	8	5	5	21
-100	Amit Kushwaha	SG	C	C	C	N_C	B	B	W	C	C	N_C	N_C	C	N_C	W	A	A	A	A	N_A	B	W	B	B	N_B	N_B	A	A	W	B	B	B	6	8	6	4	20
-101	Vikash Das	SG	W	C	C	C	C	C	N_C	W	N_C	B	B	B	B	N_B	W	B	B	B	N_B	C	C	W	A	N_A	N_A	A	A	A	W	A	A	6	7	7	5	20
-102	Mahesh Kumar Irane	SG	A	A	B	B	W	C	C	C	C	N_C	G	W	B	B	N_B	N_B	C	N_C	W	A	A	A	N_A	C	C	W	A	A	A	A	N_A	9	4	7	4	21
-103	Manish Kumar Yadav	SG	B	B	B	N_B	N_B	C	W	B	B	N_B	N_B	C	C	W	A	A	A	A	A	N_A	W	A	A	A	A	A	C	W	B	B	B	10	8	4	4	22
-104	Dinesh Ahirwar	FSG	C	F_B	W	A	A	A	A	A	F_C	W	B	B	B	B	B	F_B	W	C	C	C	C	C	C	W	A	A	A	A	A	A	W	11	5	7	5	26
-105	Chandrasekhar M	FSG	A	A	A	W	F_B	F_A	B	B	B	B	W	C	C	C	C	C	N_C	W	F_B	F_A	A	A	A	A	W	F_C	F_A	B	B	B	B	7	8	5	4	26
+43	Rahul Thakur	DSG	C	B	G	B	B	W	B	B	B	B	B	B	W	A	A	A	A	A	A	W	C	C	N_C	C	C	N_C	W	A	A	A	A	10	9	5	4	25
+44	Raj Kumar Pandey	SG	B	C	B	B	C	C	W	C	C	C	N_C	N_C	G	W	A	A	A	A	A	A	W	A	A	B	B	B	B	W	C	C	C	8	7	9	4	25
+45	Pradeep Pandey	SG	W	A	A	A	A	C	C	W	N_A	B	B	B	B	B	W	A	A	A	A	A	A	W	G	C	C	C	C	C	W	B	B	10	7	7	5	25
+46	Rajnish Tiwari	SG	A	W	A	A	N_A	C	C	C	W	A	A	A	A	A	A	W	B	B	C	C	C	C	W	B	B	B	B	B	B	W	G	9	8	7	5	24
+47	Shivam Yadav	SG	A	W	A	A	N_A	G	C	C	W	A	A	A	A	C	C	W	C	B	B	B	B	A	W	B	B	B	C	C	C	W	A	9	7	8	5	25
+48	Shekhar Vanskar	SG	N_A	W	A	A	N_A	B	B	B	W	A	A	B	B	B	B	W	B	G	A	A	A	A	W	C	C	C	C	C	C	W	B	8	9	6	5	24
+49	Sugam Vanskar	SG	B	B	W	C	C	C	C	C	C	W	A	A	B	B	B	B	W	A	A	A	A	A	C	W	A	A	B	B	N_B	G	W	9	8	7	5	25
+50	Ravi Kumar	SG	B	G	W	A	A	A	A	N_A	B	W	A	A	N_A	C	C	C	W	A	A	C	C	C	C	W	B	B	B	B	B	B	W	8	8	7	5	24
+51	Randhir Singh	SG	C	C	C	W	A	A	A	A	A	C	W	A	A	A	B	B	B	W	G	N_B	N_C	N_C	C	C	W	B	B	B	B	B	B	8	9	6	4	24
+52	Balram	SG	B	B	B	C	W	A	A	A	A	A	A	W	B	B	B	B	B	B	W	A	A	A	A	G	C	W	N_C	C	C	C	C	10	9	6	4	26
+53	Vijay Kumar Bind	SG	B	B	B	B	B	B	W	C	C	C	N_C	G	N_C	W	A	N_A	C	C	C	C	W	A	A	A	A	B	B	W	A	A	A	8	8	7	4	24
+54	Shiv Singh	SG	A	W	A	A	A	A	A	C	W	C	C	B	B	N_B	A	W	B	B	B	B	G	A	W	B	B	B	C	N_C	C	W	C	8	9	6	5	24
+55	Bharat Verma	SG	B	W	B	B	N_B	N_B	A	A	W	N_C	C	C	C	C	C	W	N_C	B	B	B	B	B	W	A	A	A	A	A	A	W	C	8	8	6	5	22
+56	Manohar Singh	SG	C	W	B	B	A	A	A	A	W	N_A	N_A	C	C	C	C	W	B	B	A	A	A	A	W	B	B	N_B	N_B	B	B	W	C	8	8	6	5	22
+57	Bhagwan Singh	SG	A	W	B	B	B	B	N_B	G	W	A	A	A	B	B	B	W	C	N_C	C	C	C	C	W	B	N_B	N_B	A	A	A	W	A	8	8	5	5	22
+58	Ritesh Tomar	SG	A	A	W	C	N_C	A	B	B	B	W	C	C	N_C	N_C	B	B	W	A	A	A	A	A	A	W	B	B	B	N_B	N_B	C	W	9	8	4	5	21
+59	Gajendra Singh	SG	B	B	W	A	A	A	A	A	A	W	N_A	B	B	B	B	A	W	C	C	N_C	N_C	B	B	W	N_B	C	C	C	C	C	W	7	8	7	5	22
+60	Dharmendra Nagar	SG	B	B	W	C	C	N_C	N_C	C	C	W	B	A	A	A	A	A	W	C	B	B	B	B	B	W	G	N_B	N_B	A	A	A	W	8	8	5	5	22
+61	Nitin Mourya	SG	A	A	W	B	B	B	B	B	A	W	A	A	A	C	C	C	W	C	C	C	N_C	N_C	B	W	N_B	B	B	N_B	N_B	C	W	6	8	7	5	21
+62	Yogendra Nagar	SG	C	C	C	W	B	B	B	N_B	N_B	B	W	B	N_B	A	A	A	A	W	N_A	C	C	C	C	N_C	W	A	N_A	N_A	B	B	B	5	8	7	4	20
+63	Raju Chandravanshi	SG	C	B	B	W	B	B	B	N_B	N_B	G	W	C	C	C	C	C	C	W	N_C	B	B	B	A	A	W	A	A	A	A	A	A	8	8	7	4	24
+64	Deshraj Solanki	SG	N_B	A	A	W	A	A	N_A	N_A	N_A	C	W	A	A	A	A	N_A	G	W	C	C	C	C	C	C	W	B	B	B	B	B	N_B	8	5	7	4	21
+65	Sunil Sen	SG	A	A	C	W	B	B	N_B	A	A	A	W	N_A	C	C	C	C	N_C	W	A	A	A	N_A	N_A	C	W	B	B	B	B	B	B	8	8	6	4	22
+66	Akash Ahirwar	SG	B	B	N_B	W	N_B	A	A	A	A	A	W	N_A	B	B	C	B	B	W	A	A	A	N_A	N_A	B	W	C	C	C	C	N_C	N_C	8	7	5	4	20
+67	Shaitan Singh	SG	N_A	N_A	B	B	W	N_B	A	A	A	A	A	W	C	C	N_B	C	C	C	W	G	N_C	B	B	B	B	W	B	B	A	A	A	8	8	5	4	22
+68	Prahlad Gaur	SG	N_C	N_C	N_C	B	W	A	A	A	A	A	A	W	C	N_C	N_C	B	B	B	W	B	B	B	B	A	A	W	N_A	C	C	C	C	8	8	5	4	21
+69	Neeraj Namdev	SG	N_B	N_B	A	N_A	W	B	B	N_B	N_B	C	C	W	C	C	B	G	A	A	W	B	B	B	B	B	B	W	A	A	A	N_A	N_A	6	9	4	4	20
+70	Prahlad Singh	SG	A	A	A	A	W	B	B	B	N_B	N_B	C	W	A	N_A	N_A	C	C	C	W	N_C	B	B	B	B	B	W	A	A	A	N_A	N_A	8	8	4	4	20
+71	Akhlesh Nagar	SG	B	B	N_B	N_B	W	C	C	C	C	C	C	W	B	A	A	A	A	A	W	A	A	A	N_A	B	B	W	N_B	C	N_C	N_C	B	8	6	7	4	21
+72	Sachin Bairagi	SG	B	B	B	G	W	A	N_A	A	A	A	A	W	A	A	A	N_A	N_A	C	W	N_A	C	C	C	N_C	C	W	B	B	B	B	B	8	8	5	4	22
+73	Lakhan Thakur	SG	C	C	B	B	W	B	B	B	B	B	B	W	N_A	C	C	C	C	N_C	W	A	A	A	A	A	A	W	G	N_A	N_A	A	A	8	8	6	4	23
+74	Manoj Pal	SG	G	A	A	A	A	W	A	B	B	B	B	N_B	W	N_C	C	C	N_C	C	C	W	C	N_C	B	B	B	B	W	N_B	A	A	A	8	8	5	4	22
+75	Pradeep Nayak	SG	B	B	N_B	C	C	W	A	A	A	A	C	C	W	B	B	B	B	N_B	C	W	N_C	G	A	A	C	C	W	B	B	C	B	6	9	8	4	24
+76	Gaurav Prajapati	SG	A	A	A	A	A	W	B	B	B	B	B	B	W	N_B	B	N_C	C	C	C	W	A	A	A	N_A	N_A	G	W	B	N_B	C	C	8	8	5	4	22
+77	Govind Mewada	SG	C	N_C	N_C	B	B	W	C	C	C	N_C	N_C	C	W	A	A	A	A	A	A	W	N_A	B	N_B	N_B	A	A	W	B	B	B	B	8	7	5	4	20
+78	Deen Dayal Rathore	SG	N_C	C	C	C	C	W	C	N_C	N_C	N_C	B	A	W	A	C	N_C	B	B	B	W	B	B	B	N_B	N_B	B	W	A	A	A	A	6	8	6	4	20
+79	Vikash Mewada	SG	N_A	N_A	A	A	A	W	N_A	B	B	B	B	B	W	B	B	B	C	C	C	W	A	A	A	A	A	N_A	W	G	N_A	C	C	8	8	5	4	22
+80	Pradeep Sallam	SG	C	C	N_C	B	B	W	A	A	A	A	A	C	W	A	A	B	N_A	N_A	B	W	B	B	B	N_B	C	C	W	B	N_B	A	A	9	8	5	4	22
+81	Ajay Kushwaha	SG	A	N_A	C	N_C	B	W	A	N_A	C	C	C	N_C	W	B	B	A	A	A	A	W	C	B	B	N_B	C	C	W	B	B	N_B	N_B	6	7	7	4	20
+82	Rahul Kushwaha	SG	A	A	A	A	A	A	W	B	B	B	N_B	N_B	A	W	B	N_B	B	N_B	N_B	A	W	C	C	C	C	C	N_C	W	B	B	B	8	8	5	4	21
+83	Manish Thakur	SG	N_B	N_B	N_B	N_B	A	A	W	B	B	B	N_B	N_B	C	W	A	A	A	A	A	A	W	C	C	C	C	C	C	W	B	B	N_B	8	5	7	4	20
+84	Gangaram	SG	C	C	C	C	C	N_C	W	A	A	A	A	A	A	W	N_A	B	B	B	B	N_B	W	N_B	B	N_B	B	B	B	W	G	N_B	C	6	8	6	4	21
+85	Rahul Vanskar	SG	A	A	A	A	A	A	W	B	B	B	B	B	B	W	B	B	N_B	N_B	N_B	C	W	C	C	C	C	N_C	N_C	W	C	C	N_C	6	8	7	4	21
+86	Vijay Malviya-(II)	SG	W	A	N_A	N_A	C	C	C	W	A	A	A	A	A	A	W	C	N_C	N_C	B	B	A	W	B	B	B	B	B	N_B	W	B	B	8	9	4	5	21
+87	Rambabu Verma	SG	W	A	N_A	N_A	B	B	B	W	B	B	B	N_B	A	A	W	C	C	N_C	N_C	C	C	W	A	A	A	A	A	N_A	W	B	B	8	8	4	5	20
+88	Pradeep Sen	SG	W	A	A	N_A	N_A	B	B	W	C	N_C	B	A	A	N_A	W	A	A	B	B	B	B	W	C	C	N_C	C	C	C	W	A	A	8	7	6	5	21
+89	Vachan Malviya	SG	W	B	B	B	N_B	N_B	G	W	A	C	C	C	C	C	W	B	B	B	N_B	N_B	A	W	A	A	A	N_A	C	C	W	A	A	7	6	7	5	21
+90	Kapil Mewada	SG	W	C	C	N_C	N_C	C	C	W	C	C	C	N_C	N_C	B	W	B	B	B	B	B	B	W	B	A	A	A	A	N_A	W	A	A	6	8	7	5	21
+91	Neeraj Sharma	SG	C	W	C	C	C	N_C	N_C	C	W	B	B	B	N_B	N_B	G	W	A	A	N_A	N_A	B	B	W	A	A	A	A	A	A	W	C	8	5	6	5	20
+92	Akash Maran	SG	A	A	W	C	B	B	B	B	B	W	A	A	N_A	N_A	C	C	W	B	B	B	N_B	C	C	W	A	A	A	N_A	N_A	A	W	8	8	5	5	21
+93	Neelesh Bansal	SG	A	A	W	A	A	A	A	N_A	A	W	B	B	B	B	B	B	W	B	B	N_B	B	N_B	C	W	N_C	C	C	C	C	C	W	7	9	6	5	22
+94	Robinaman John	SG	B	B	W	A	A	A	N_A	A	G	W	B	B	B	B	B	B	W	C	C	C	N_C	N_C	N_C	W	A	A	A	A	A	N_A	W	9	8	3	5	21
+95	Rajendra Rajput	SG	N_B	B	N_B	N_B	C	C	W	A	A	A	N_A	C	C	W	A	A	A	A	A	A	W	B	B	B	N_B	N_B	B	W	C	C	C	9	5	7	4	21
+96	Ghanshyam Verma	SG	W	C	C	C	C	C	C	W	B	N_B	N_B	A	A	A	W	A	N_A	N_A	B	B	B	W	A	A	A	A	N_A	A	W	B	B	9	6	6	5	21
+97	Rajat Manjhi	SG	W	B	B	B	B	N_B	N_B	W	C	C	C	N_C	A	G	W	C	C	N_C	N_C	B	B	W	A	A	A	A	A	A	W	B	B	7	8	5	5	21
+98	Dharmendra Chand	SG	C	C	C	N_C	B	B	W	C	C	N_C	N_C	C	N_C	W	A	A	A	A	N_A	B	W	B	B	N_B	N_B	A	A	W	B	B	B	6	8	6	4	20
+99	Ramlakhan Ahirwar	SG	W	C	C	C	C	C	N_C	W	N_C	B	B	B	B	N_B	W	B	B	B	N_B	C	C	W	A	N_A	N_A	A	A	A	W	A	A	6	7	7	5	20
+100	Amit Kushwaha	SG	A	A	B	B	W	C	C	C	C	N_C	G	W	B	B	N_B	N_B	C	N_C	W	A	A	A	N_A	C	C	W	A	A	A	A	N_A	9	4	7	4	21
+101	Vikash Das	SG	B	B	B	N_B	N_B	C	W	B	B	N_B	N_B	C	C	W	A	A	A	A	A	N_A	W	A	A	A	A	A	C	W	B	B	B	10	8	4	4	22
+102	Mahesh Kumar Irane	SG	C	F_B	W	A	A	A	A	A	F_C	W	B	B	B	B	B	F_B	W	C	C	C	C	C	C	W	A	A	A	A	A	A	W	11	5	7	5	23
+103	Manish Kumar Yadav	SG	A	A	A	W	F_B	F_A	B	B	B	B	W	C	C	C	C	C	N_C	W	F_B	F_A	A	A	A	A	W	F_C	F_A	B	B	B	B	7	8	5	4	20
+104	Dinesh Ahirwar	FSG	B	B	B	B	B	B	W	C	C	C	C	F_C	F_A	W	A	A	A	A	A	A	W	B	B	B	B	B	B	W	C	F_B	N_C	6	12	5	4	26
+105	Chandrasekhar M	FSG	W	C	C	C	C	C	C	W	A	A	A	A	A	A	W	B	B	B	B	B	B	W	F_C	C	C	C	C	C	W	C	C	6	6	13	5	26
 106	Avinash Mahod	FSG	B	B	B	B	B	B	W	C	C	C	C	F_C	F_A	W	A	A	A	A	A	A	W	B	B	B	B	B	B	W	C	F_B	N_C	6	12	5	4	26
 107	Amit Paleria	FSG	W	C	C	C	C	C	C	W	A	A	A	A	A	A	W	B	B	B	B	B	B	W	F_C	C	C	C	C	C	W	C	C	6	6	13	5	26
 																																						
-		A	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26					
-		B	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26	26					
-		C	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25	25					
-		G	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1					
-		N_A	6	6	4	6	6	2	6	5	3	3	4	4	4	5	7	5	4	3	4	3	2	3	5	3	3	3	3	5	3	5	4					
-		N_B	5	3	5	4	5	5	4	5	5	5	4	4	3	5	3	4	5	5	5	5	3	5	3	8	8	6	5	5	8	4	5					
-		N_C	2	3	5	4	2	6	4	3	4	6	6	5	6	4	3	3	5	6	4	5	9	5	4	3	3	4	5	4	2	3	5					
-		N_Total	13	12	14	14	13	13	14	13	12	14	14	13	13	14	13	12	14	14	13	13	14	13	12	14	14	13	13	14	13	12	14					
+		A	26	26	25	26	26	26	26	26	27	27	27	27	27	27	27	26	26	27	27	27	26	26	25	25	26	26	25	25	25	25	25					
+		B	26	26	26	26	26	26	25	25	24	24	25	24	24	25	26	26	26	26	25	25	26	27	26	26	26	26	26	25	26	25	26					
+		C	25	26	26	26	26	26	26	26	26	26	26	25	25	25	25	25	25	25	25	25	25	25	25	26	26	26	26	26	26	26	26					
+		G	1	1	1	1	0	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1	1					
+		N_A	6	6	4	6	6	1	5	5	3	3	4	4	4	5	7	5	4	3	4	3	2	3	5	3	3	2	3	5	3	5	4					
+		N_B	5	2	5	4	5	5	4	5	5	5	4	4	3	4	2	4	5	5	5	5	2	4	3	8	8	6	5	5	8	4	4					
+		N_C	2	3	5	4	2	6	4	3	4	6	6	5	6	4	3	3	5	6	4	5	9	5	4	3	3	4	5	4	2	3	6					
+		N_Total	13	11	14	14	13	12	13	13	12	14	14	13	13	13	12	12	14	14	13	13	13	12	12	14	14	12	13	14	13	12	14					
 		I/C	2	1	2	2	1	2	2	2	1	2	2	1	2	2	2	1	2	2	1	2	2	2	1	2	2	1	2	2	2	1	2					
 		SS/LSS	4	5	4	4	5	4	4	4	5	4	4	5	4	4	4	5	4	4	5	4	4	4	5	4	4	5	4	4	4	5	4					
 		GM	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4	4					
 		LSG	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14	14					
-		DSG	9	6	10	9	10	8	11	8	7	10	9	10	9	11	6	6	9	9	10	9	9	9	6	10	8	9	9	10	9	6	9					
-		SG	43	46	42	43	42	44	41	44	45	42	43	42	43	41	46	46	44	43	42	43	43	43	46	42	44	43	43	42	43	46	44					
-		FSG	3	3	3	3	3	3	3	3	3	3	3	3	3	3	3	3	2	3	3	3	3	3	3	3	3	3	3	3	3	3	2					
+		DSG	10	7	10	9	10	7	11	9	7	10	9	10	8	11	7	6	9	9	10	8	9	10	5	10	8	8	8	10	10	6	10					
+		SG	43	45	41	43	41	45	42	44	44	41	43	42	44	42	47	45	42	43	41	43	44	44	47	41	44	44	43	42	43	46	43					
+		FSG	2	4	4	4	4	4	2	2	4	4	4	2	2	2	2	4	4	4	4	4	2	2	2	4	4	4	4	2	2	2	2					
 																																						
 		Att with IWD																																				
 108	Himanshu Kumar	FSG	C	C	C	C	W	B	B	B	B	B	B	W	C	C	C	C	C	C	W	B	B	B	B	B	B	W	C	C	C	C	C	0	12	15	4	27

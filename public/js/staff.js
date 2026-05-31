@@ -24,6 +24,14 @@ function addDays(dateStr, days) {
 function todayStr() {
   return toDateInput(new Date());
 }
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
 let staffScheduleRows = [];
 let staffScheduleFocusDate = todayStr();
 
@@ -41,6 +49,7 @@ function showTab(name, btn) {
   if (name === 'attendance') loadAttendance();
   if (name === 'confirm') loadPendingConfirm();
   if (name === 'profile') loadProfile();
+  if (name === 'community') loadCommunityFeed();
 }
 
 async function init() {
@@ -165,7 +174,65 @@ function renderScheduleWindow() {
 async function loadNotifications() {
   const banner = document.getElementById('notif-banner');
   banner.style.display = 'block';
-  banner.textContent = 'Shift confirmation push notification will arrive 30 minutes before your assigned shift.';
+  const pendingRes = await fetch('/api/staff/notifications');
+  const pending = pendingRes.ok ? await pendingRes.json() : [];
+
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    banner.textContent = 'Push notifications are not supported in this browser.';
+    return;
+  }
+
+  if (Notification.permission === 'granted') {
+    try {
+      await subscribeForShiftNotifications();
+      banner.textContent = `Push reminders enabled for ${pending.length} pending shift${pending.length === 1 ? '' : 's'}. Reminders are sent 30 minutes before the IST shift start time.`;
+    } catch (error) {
+      banner.textContent = 'Push notifications could not be enabled. Please try again after reconnecting.';
+    }
+    return;
+  }
+
+  if (Notification.permission === 'denied') {
+    banner.textContent = 'Push notifications are blocked for this browser.';
+    return;
+  }
+
+  banner.innerHTML = `
+    <span>Enable push reminders for A 6:00 AM, B 2:00 PM, C 10:00 PM, and G 9:00 AM shifts.</span>
+    <button class="btn btn-primary btn-sm" type="button" onclick="enableShiftNotifications()">Enable Notifications</button>
+  `;
+}
+
+async function enableShiftNotifications() {
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    loadNotifications();
+    return;
+  }
+  await subscribeForShiftNotifications();
+  loadNotifications();
+}
+
+async function subscribeForShiftNotifications() {
+  const keyRes = await fetch('/api/staff/push-public-key');
+  if (!keyRes.ok) throw new Error('Push key unavailable');
+  const { publicKey } = await keyRes.json();
+  const registration = await navigator.serviceWorker.ready;
+  let subscription = await registration.pushManager.getSubscription();
+
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+  }
+
+  const saveRes = await fetch('/api/staff/push-subscription', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subscription })
+  });
+  if (!saveRes.ok) throw new Error('Subscription save failed');
 }
 
 function currentWeekRange() {
@@ -190,7 +257,7 @@ async function loadPendingConfirm() {
     return;
   }
 
-  const shiftLabels = { A: 'Morning (A)', B: 'Noon (B)', C: 'Evening (C)' };
+  const shiftLabels = { A: 'Morning (A)', B: 'Noon (B)', C: 'Evening (C)', G: 'General (G)' };
   container.innerHTML = `
     <div class="alert alert-info">You will receive a push notification 30 minutes before each confirmable shift.</div>
     <table>
@@ -199,17 +266,49 @@ async function loadPendingConfirm() {
         ${week.map(p => {
           const dt = new Date(p.date + 'T00:00:00');
           const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-          const confirmable = ['A', 'B', 'C'].includes(p.shift);
+          const confirmable = ['A', 'B', 'C', 'G'].includes(p.shift);
+          const isToday = p.date === todayStr();
+          const confirmationCell = !confirmable
+            ? '-'
+            : !isToday
+              ? '<span style="font-size:12px;color:var(--muted);">Unavailable</span>'
+            : p.confirmation && p.confirmation !== 'pending'
+              ? statusBadge(p.confirmation)
+              : `
+                <button class="btn btn-success btn-sm" onclick="confirmShift('${p.date}', 'confirmed')">Confirm</button>
+                <button class="btn btn-danger btn-sm" onclick="confirmShift('${p.date}', 'declined')" style="margin-left:4px;">Decline</button>
+              `;
           return `<tr>
             <td>${fmtDate(p.date)}</td>
             <td>${dayNames[dt.getDay()]}</td>
             <td>${shiftBadge(p.shift)} ${shiftLabels[p.shift] || p.shift}</td>
-            <td>${confirmable ? 'Push 30 min before shift' : '-'}</td>
+            <td>${confirmationCell}</td>
           </tr>`;
         }).join('')}
       </tbody>
     </table>
   `;
+}
+
+async function confirmShift(date, status) {
+  const res = await fetch('/api/staff/confirm-shift', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date, status }),
+  });
+
+  if (res.ok) {
+    loadPendingConfirm();
+    loadSchedule();
+    loadNotifications();
+    return;
+  }
+
+  const data = await res.json();
+  document.getElementById('confirm-list').insertAdjacentHTML(
+    'afterbegin',
+    `<div class="alert alert-error">${data.error || 'Could not update confirmation.'}</div>`
+  );
 }
 
 async function submitLeave() {
@@ -355,6 +454,78 @@ async function loadProfileRequestHistory() {
       `).join('')}</tbody>
     </table>
   `;
+}
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
+
+function fmtDateTime(value) {
+  if (!value) return '-';
+  return new Date(value).toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
+function renderCommunityMedia(media) {
+  if (!media || !media.length) return '';
+  return `<div class="community-media-grid">${media.map(item => {
+    if (item.type === 'video') {
+      return `<video class="community-media" src="${item.url}" controls preload="metadata"></video>`;
+    }
+    return `<img class="community-media" src="${item.url}" alt="${escapeHtml(item.name || 'Community image')}">`;
+  }).join('')}</div>`;
+}
+
+function renderCommunityPosts(posts) {
+  const feed = document.getElementById('community-feed');
+  if (!posts.length) {
+    feed.innerHTML = '<div class="empty-state">No community posts yet.</div>';
+    return;
+  }
+
+  feed.innerHTML = posts.map(post => `
+    <article class="community-post ${post.isAlert ? 'is-alert' : ''}">
+      <div class="community-post-head">
+        <div>
+          <div class="community-author">${escapeHtml(post.authorName)}</div>
+          <div class="community-meta">${fmtDateTime(post.createdAt)} · ${post.target === 'all' ? 'Everyone' : escapeHtml(post.target)}</div>
+        </div>
+        ${post.isAlert ? '<span class="community-alert-badge">Alert</span>' : ''}
+      </div>
+      ${post.text ? `<div class="community-text">${escapeHtml(post.text).replace(/\n/g, '<br>')}</div>` : ''}
+      ${renderCommunityMedia(post.media)}
+      <div class="community-reactions">
+        <button class="btn btn-outline btn-sm ${post.myReaction === 'up' ? 'reaction-active' : ''}" onclick="reactCommunity(${post.id}, 'up')">👍 ${post.reactionCounts.up}</button>
+        <button class="btn btn-outline btn-sm ${post.myReaction === 'down' ? 'reaction-active' : ''}" onclick="reactCommunity(${post.id}, 'down')">👎 ${post.reactionCounts.down}</button>
+      </div>
+    </article>
+  `).join('');
+}
+
+async function loadCommunityFeed() {
+  const res = await fetch('/api/community');
+  if (!res.ok) return;
+  renderCommunityPosts(await res.json());
+}
+
+async function reactCommunity(postId, reaction) {
+  const res = await fetch(`/api/community/${postId}/reaction`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reaction })
+  });
+  if (res.ok) loadCommunityFeed();
 }
 
 init();

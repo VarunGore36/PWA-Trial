@@ -46,6 +46,7 @@ function showTab(name, btn) {
   if (name === 'schedule') loadScheduleView();
   if (name === 'leaves') loadLeaves();
   if (name === 'profile-requests') loadProfileRequests();
+  if (name === 'community') loadCommunityFeed();
 }
 
 async function init() {
@@ -162,7 +163,7 @@ async function loadScheduleView() {
   let filteredRows = designation === 'all' ? rows : rows.filter(r => r.designation === designation);
 
   if (scheduleMode === 'unconfirmed') {
-    filteredRows = filteredRows.filter(r => ['A', 'B', 'C'].includes(r.shift) && r.confirmed !== 'confirmed');
+    filteredRows = filteredRows.filter(r => ['A', 'B', 'C', 'G'].includes(r.shift) && r.confirmed !== 'confirmed');
     renderUnconfirmedRows(filteredRows, wrap);
     return;
   }
@@ -375,6 +376,95 @@ async function createWorker() {
   } else {
     msgEl.innerHTML = `<div class="alert alert-error">${data.error}</div>`;
   }
+}
+
+function escapeHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
+
+function fmtDateTime(value) {
+  if (!value) return '-';
+  return new Date(value).toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
+function renderCommunityMedia(media) {
+  if (!media || !media.length) return '';
+  return `<div class="community-media-grid">${media.map(item => {
+    if (item.type === 'video') {
+      return `<video class="community-media" src="${item.url}" controls preload="metadata"></video>`;
+    }
+    return `<img class="community-media" src="${item.url}" alt="${escapeHtml(item.name || 'Community image')}">`;
+  }).join('')}</div>`;
+}
+
+function renderCommunityPosts(posts) {
+  const feed = document.getElementById('community-feed');
+  if (!posts.length) {
+    feed.innerHTML = '<div class="empty-state">No community posts yet.</div>';
+    return;
+  }
+
+  feed.innerHTML = posts.map(post => `
+    <article class="community-post ${post.isAlert ? 'is-alert' : ''}">
+      <div class="community-post-head">
+        <div>
+          <div class="community-author">${escapeHtml(post.authorName)}</div>
+          <div class="community-meta">${fmtDateTime(post.createdAt)} · ${post.target === 'all' ? 'Everyone' : escapeHtml(post.target)}</div>
+        </div>
+        ${post.isAlert ? '<span class="community-alert-badge">Alert</span>' : ''}
+      </div>
+      ${post.text ? `<div class="community-text">${escapeHtml(post.text).replace(/\n/g, '<br>')}</div>` : ''}
+      ${renderCommunityMedia(post.media)}
+      <div class="community-reactions">
+        <span>👍 ${post.reactionCounts.up}</span>
+        <span>👎 ${post.reactionCounts.down}</span>
+      </div>
+    </article>
+  `).join('');
+}
+
+async function loadCommunityFeed() {
+  const res = await fetch('/api/community');
+  if (!res.ok) return;
+  renderCommunityPosts(await res.json());
+}
+
+async function createCommunityPost() {
+  const msgEl = document.getElementById('community-msg');
+  msgEl.innerHTML = '';
+
+  const formData = new FormData();
+  formData.append('text', document.getElementById('community-text').value.trim());
+  formData.append('target', document.getElementById('community-target').value);
+  formData.append('isAlert', document.getElementById('community-alert').checked ? 'true' : 'false');
+
+  const files = [...document.getElementById('community-media').files].slice(0, 3);
+  files.forEach(file => formData.append('media', file));
+
+  const res = await fetch('/api/community', { method: 'POST', body: formData });
+  const data = await res.json();
+  if (!res.ok) {
+    msgEl.innerHTML = `<div class="alert alert-error">${data.error || 'Community post failed.'}</div>`;
+    return;
+  }
+
+  document.getElementById('community-text').value = '';
+  document.getElementById('community-media').value = '';
+  document.getElementById('community-alert').checked = false;
+  msgEl.innerHTML = '<div class="alert alert-success">Community post published.</div>';
+  loadCommunityFeed();
 }
 
 init();

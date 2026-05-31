@@ -39,6 +39,7 @@
     <button class="tab-btn" onclick="showTab('schedule', this)">Schedule View</button>
     <button class="tab-btn" onclick="showTab('leaves', this)">Leave Requests</button>
     <button class="tab-btn" onclick="showTab('profile-requests', this)">Profile Changes</button>
+    <button class="tab-btn" onclick="showTab('community', this)">Community</button>
     <button class="tab-btn" onclick="showTab('create', this)">Add Worker</button>
   </div>
 
@@ -94,6 +95,45 @@
     <div class="card">
       <div class="card-header">Pending Profile Change Requests</div>
       <div class="table-wrap" id="profile-requests-table"><div class="empty-state">Loading...</div></div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-community">
+    <div class="community-layout">
+      <div class="card community-compose">
+        <div class="card-header">Post to Community</div>
+        <div id="community-msg"></div>
+        <div class="form-group">
+          <label class="form-label">Message</label>
+          <textarea id="community-text" class="form-control" rows="4" placeholder="Write an update, instruction, or alert..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Audience</label>
+          <select id="community-target" class="form-control">
+            <option value="all">Everyone</option>
+            <option value="SG">Security Guard (SG)</option>
+            <option value="DSG">Deputy Security Guard (DSG)</option>
+            <option value="SS">Senior Supervisor (SS)</option>
+            <option value="LSG">Lady Security Guard (LSG)</option>
+            <option value="GM">Gunman (GM)</option>
+            <option value="FSG">Fire Security Guard (FSG)</option>
+            <option value="I/C">Shift In-Charge (I/C)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Media</label>
+          <input type="file" id="community-media" class="form-control" accept="image/*,video/*" multiple>
+        </div>
+        <label class="community-alert-toggle">
+          <input type="checkbox" id="community-alert">
+          <span>Alert / emergency post</span>
+        </label>
+        <button class="btn btn-primary" onclick="createCommunityPost()">Post</button>
+      </div>
+      <div class="card community-feed-card">
+        <div class="card-header">Community Feed</div>
+        <div id="community-feed"><div class="empty-state">Loading...</div></div>
+      </div>
     </div>
   </div>
 

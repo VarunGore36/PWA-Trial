@@ -91,7 +91,7 @@ router.post('/update-schedule', async (req, res) => {
     const { user_id, date, shift } = req.body;
     if (!user_id || !date || !shift) return res.status(400).json({ error: 'user_id, date, shift required' });
     const normalizedShift = String(shift).toUpperCase();
-    if (!['A', 'B', 'C', 'W', 'N', 'F'].includes(normalizedShift)) {
+    if (!['A', 'B', 'C', 'G', 'W', 'N', 'F'].includes(normalizedShift)) {
       return res.status(400).json({ error: 'Invalid shift' });
     }
     await db.setSchedule({ userId: user_id, date, shift: normalizedShift });

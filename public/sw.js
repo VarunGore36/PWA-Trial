@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'iiser-shifts-v1';
+const CACHE_VERSION = 'iiser-shifts-v4';
 const APP_SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -64,9 +64,58 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  if (request.method === 'GET' && /\.(js|css)$/i.test(url.pathname)) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
   if (request.method === 'GET') {
     event.respondWith(staleWhileRevalidate(request));
   }
+});
+
+self.addEventListener('push', event => {
+  let payload = {
+    title: 'Shift reminder',
+    body: 'Your shift starts soon.',
+    url: '/staff',
+    tag: 'shift-reminder'
+  };
+
+  if (event.data) {
+    try {
+      payload = { ...payload, ...event.data.json() };
+    } catch (error) {
+      payload.body = event.data.text();
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: '/img/pwa-icon-192.png',
+      badge: '/img/pwa-icon-96.png',
+      tag: payload.tag,
+      renotify: true,
+      data: {
+        url: payload.url || '/staff',
+        ...(payload.data || {})
+      }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const targetUrl = new URL(event.notification.data && event.notification.data.url || '/staff', self.location.origin).href;
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      const existingClient = clientList.find(client => client.url === targetUrl);
+      if (existingClient) return existingClient.focus();
+      return clients.openWindow(targetUrl);
+    })
+  );
 });
 
 async function navigationRequest(request) {
