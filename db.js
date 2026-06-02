@@ -7,12 +7,18 @@ const DATA_DIR = process.env.DATA_DIR || BUNDLED_DATA_DIR;
 const DB_PATH = path.join(DATA_DIR, 'database.json');
 const TEMP_ROSTER_PATH = path.join(__dirname, 'AutoRoster from May to June - Sheet1.tsv');
 const IST_OFFSET_MINUTES = 330;
+const SHIFT_REMINDER_LEAD_MINUTES = 60;
 const CONFIRMABLE_SHIFTS = ['A', 'B', 'C', 'G'];
 const SHIFT_STARTS = {
   A: { label: 'Morning', time: '06:00' },
   B: { label: 'Noon', time: '14:00' },
   C: { label: 'Evening', time: '22:00' },
   G: { label: 'General', time: '09:00' }
+};
+const DECLINE_REPLACEMENT_SHIFTS = {
+  A: 'N_A',
+  B: 'N_B',
+  C: 'N_C'
 };
 
 function isConfirmableShift(shift) {
@@ -147,6 +153,7 @@ function emptyDatabase() {
     pushSubscriptions: [],
     sentShiftNotifications: [],
     pushVapidKeys: null,
+    shiftReassignments: [],
     nextCommunityPostId: 1,
     communityPosts: [],
     nextProfileChangeRequestId: 1,
@@ -199,6 +206,10 @@ async function readDb() {
   }
   if (db.pushVapidKeys === undefined) {
     db.pushVapidKeys = null;
+    changed = true;
+  }
+  if (!Array.isArray(db.shiftReassignments)) {
+    db.shiftReassignments = [];
     changed = true;
   }
   if (!Array.isArray(db.communityPosts)) {
@@ -643,7 +654,7 @@ async function pendingNotifications(userId) {
         shift,
         label: shiftDisplayName(shift),
         startAt: startAt ? new Date(startAt).toISOString() : null,
-        reminderAt: startAt ? new Date(startAt - 30 * 60 * 1000).toISOString() : null
+        reminderAt: startAt ? new Date(startAt - SHIFT_REMINDER_LEAD_MINUTES * 60 * 1000).toISOString() : null
       };
     });
 }
@@ -655,6 +666,7 @@ async function confirmShift({ userId, date, status }) {
   const schedule = db.schedules.find(item => item.userId === numericId && item.date === date);
   if (!schedule) return 'missing';
   if (!isConfirmableShift(schedule.shift)) return 'blocked';
+  const originalShift = schedule.shift;
   const existing = db.confirmations.find(item => item.userId === numericId && item.date === date);
   if (existing) {
     existing.status = status;
@@ -662,8 +674,72 @@ async function confirmShift({ userId, date, status }) {
   } else {
     db.confirmations.push({ userId: numericId, date, status, updatedAt: new Date().toISOString() });
   }
+
+  const reassignment = status === 'declined'
+    ? autoReassignDeclinedShift(db, { declinedBy: numericId, date, shift: originalShift })
+    : null;
+
   await writeDb(db);
-  return 'ok';
+  return { status: 'ok', reassignment };
+}
+
+function autoReassignDeclinedShift(db, { declinedBy, date, shift }) {
+  const replacementShift = DECLINE_REPLACEMENT_SHIFTS[shift];
+  if (!replacementShift) return null;
+
+  const candidates = db.schedules
+    .filter(item => item.date === date && item.shift === replacementShift && item.userId !== declinedBy)
+    .filter(item => {
+      const user = db.users.find(candidate => candidate.id === item.userId);
+      if (!user || user.role !== 'staff') return false;
+      return !db.leaves.some(leave =>
+        leave.userId === item.userId &&
+        leave.date === date &&
+        (leave.status === 'approved' || leave.status === 'pending')
+      );
+    });
+
+  if (!candidates.length) {
+    db.shiftReassignments.push({
+      date,
+      shift,
+      declinedBy,
+      replacementUserId: null,
+      replacementShift,
+      status: 'no-replacement',
+      createdAt: new Date().toISOString()
+    });
+    return null;
+  }
+
+  const replacementSchedule = candidates[Math.floor(Math.random() * candidates.length)];
+  const declinedSchedule = db.schedules.find(item => item.userId === declinedBy && item.date === date);
+  const previousReplacementShift = replacementSchedule.shift;
+
+  replacementSchedule.shift = shift;
+  if (declinedSchedule) declinedSchedule.shift = replacementShift;
+
+  db.confirmations = db.confirmations.filter(item =>
+    !(item.userId === replacementSchedule.userId && item.date === date)
+  );
+
+  db.shiftReassignments.push({
+    date,
+    shift,
+    declinedBy,
+    replacementUserId: replacementSchedule.userId,
+    replacementShift: previousReplacementShift,
+    status: 'assigned',
+    createdAt: new Date().toISOString()
+  });
+
+  const replacementUser = db.users.find(user => user.id === replacementSchedule.userId);
+  return {
+    userId: replacementSchedule.userId,
+    name: replacementUser ? replacementUser.name : 'Replacement worker',
+    previousShift: previousReplacementShift,
+    assignedShift: shift
+  };
 }
 
 async function savePushSubscription(userId, subscription) {
@@ -727,7 +803,7 @@ async function getDueShiftNotifications(now = new Date()) {
       const startMs = shiftStartUtcMs(item.date, item.shift);
       if (!startMs) return null;
       const key = `${item.userId}|${item.date}|${item.shift}|${startMs}`;
-      return { ...item, startMs, reminderMs: startMs - 30 * 60 * 1000, key };
+      return { ...item, startMs, reminderMs: startMs - SHIFT_REMINDER_LEAD_MINUTES * 60 * 1000, key };
     })
     .filter(Boolean)
     .filter(item => nowMs >= item.reminderMs && nowMs < item.startMs && !sent.has(item.key))
@@ -910,6 +986,7 @@ async function staffAttendance(userId) {
 module.exports = {
   DB_PATH,
   CONFIRMABLE_SHIFTS,
+  SHIFT_REMINDER_LEAD_MINUTES,
   communityRecipients,
   createLeave,
   createCommunityPost,

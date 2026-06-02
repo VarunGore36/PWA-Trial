@@ -26,7 +26,7 @@ router.post('/confirm-shift', async (req, res) => {
     if (result === 'missing') return res.status(404).json({ error: 'No schedule for this date' });
     if (result === 'not-today') return res.status(400).json({ error: 'Only today\'s shift can be confirmed or declined' });
     if (result === 'blocked') return res.status(400).json({ error: 'Only A, B, C, and G shifts can be confirmed' });
-    res.json({ success: true });
+    res.json({ success: true, reassignment: result.reassignment || null });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

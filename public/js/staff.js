@@ -185,7 +185,7 @@ async function loadNotifications() {
   if (Notification.permission === 'granted') {
     try {
       await subscribeForShiftNotifications();
-      banner.textContent = `Push reminders enabled for ${pending.length} pending shift${pending.length === 1 ? '' : 's'}. Reminders are sent 30 minutes before the IST shift start time.`;
+      banner.textContent = `Push reminders enabled for ${pending.length} pending shift${pending.length === 1 ? '' : 's'}. Reminders are sent 1 hour before the IST shift start time.`;
     } catch (error) {
       banner.textContent = 'Push notifications could not be enabled. Please try again after reconnecting.';
     }
@@ -259,7 +259,7 @@ async function loadPendingConfirm() {
 
   const shiftLabels = { A: 'Morning (A)', B: 'Noon (B)', C: 'Evening (C)', G: 'General (G)' };
   container.innerHTML = `
-    <div class="alert alert-info">You will receive a push notification 30 minutes before each confirmable shift.</div>
+    <div class="alert alert-info">You will receive a push notification 1 hour before each confirmable shift.</div>
     <table>
       <thead><tr><th>Date</th><th>Day</th><th>Shift</th><th>Confirmation</th></tr></thead>
       <tbody>
@@ -298,9 +298,19 @@ async function confirmShift(date, status) {
   });
 
   if (res.ok) {
-    loadPendingConfirm();
-    loadSchedule();
-    loadNotifications();
+    const data = await res.json();
+    const message = status === 'declined'
+      ? data.reassignment
+        ? `Shift declined. Reassigned to ${data.reassignment.name}.`
+        : 'Shift declined. No matching N-shift replacement was available.'
+      : 'Shift confirmed.';
+    await loadPendingConfirm();
+    await loadSchedule();
+    await loadNotifications();
+    document.getElementById('confirm-list').insertAdjacentHTML(
+      'afterbegin',
+      `<div class="alert alert-success">${message}</div>`
+    );
     return;
   }
 

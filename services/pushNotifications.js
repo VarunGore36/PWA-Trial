@@ -39,10 +39,15 @@ async function sendDueShiftNotifications() {
 
   for (const notification of dueNotifications) {
     const payload = JSON.stringify({
-      title: 'Shift starts in 30 minutes',
-      body: `${notification.label} shift starts at ${formatStartTime(notification.startAt)} IST.`,
+      title: 'Shift starts in 1 hour',
+      body: `${notification.label} shift starts at ${formatStartTime(notification.startAt)} IST. Confirm or decline now.`,
       url: '/staff',
       tag: `shift-${notification.userId}-${notification.date}-${notification.shift}`,
+      requireInteraction: true,
+      actions: [
+        { action: 'confirmed', title: 'Confirm' },
+        { action: 'declined', title: 'Decline' }
+      ],
       data: {
         date: notification.date,
         shift: notification.shift
@@ -77,7 +82,8 @@ async function sendCommunityAlert({ title, body, target }) {
     title: title || 'Community alert',
     body: body || 'New alert from admin.',
     url: '/staff',
-    tag: `community-alert-${Date.now()}`
+    tag: `community-alert-${Date.now()}`,
+    requireInteraction: true
   });
 
   for (const subscription of subscriptions) {

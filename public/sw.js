@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'iiser-shifts-v4';
+const CACHE_VERSION = 'iiser-shifts-v5';
 const APP_SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
@@ -97,6 +97,9 @@ self.addEventListener('push', event => {
       badge: '/img/pwa-icon-96.png',
       tag: payload.tag,
       renotify: true,
+      requireInteraction: Boolean(payload.requireInteraction),
+      vibrate: [200, 100, 200],
+      actions: payload.actions || [],
       data: {
         url: payload.url || '/staff',
         ...(payload.data || {})
@@ -107,16 +110,28 @@ self.addEventListener('push', event => {
 
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const targetUrl = new URL(event.notification.data && event.notification.data.url || '/staff', self.location.origin).href;
+  const data = event.notification.data || {};
+  const targetUrl = new URL(data.url || '/staff', self.location.origin).href;
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+    handleNotificationAction(event.action, data).then(() => clients.matchAll({ type: 'window', includeUncontrolled: true })).then(clientList => {
       const existingClient = clientList.find(client => client.url === targetUrl);
       if (existingClient) return existingClient.focus();
       return clients.openWindow(targetUrl);
     })
   );
 });
+
+async function handleNotificationAction(action, data) {
+  if (!['confirmed', 'declined'].includes(action) || !data.date) return;
+  try {
+    await fetch('/api/staff/confirm-shift', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date: data.date, status: action })
+    });
+  } catch (error) {}
+}
 
 async function navigationRequest(request) {
   try {
