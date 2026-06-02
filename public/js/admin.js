@@ -47,6 +47,7 @@ function showTab(name, btn) {
   if (name === 'leaves') loadLeaves();
   if (name === 'profile-requests') loadProfileRequests();
   if (name === 'community') loadCommunityFeed();
+  if (name === 'logs') loadAdminLogs();
 }
 
 async function init() {
@@ -475,6 +476,29 @@ async function createCommunityPost() {
   document.getElementById('community-alert').checked = false;
   msgEl.innerHTML = '<div class="alert alert-success">Community post published.</div>';
   loadCommunityFeed();
+}
+
+async function loadAdminLogs() {
+  const res = await fetch('/api/admin/activity-logs');
+  if (!res.ok) return;
+  const logs = await res.json();
+  const container = document.getElementById('admin-logs');
+
+  if (!logs.length) {
+    container.innerHTML = '<div class="empty-state">No admin activity recorded yet.</div>';
+    return;
+  }
+
+  container.innerHTML = logs.map(log => `
+    <article class="admin-log-item">
+      <div class="admin-log-head">
+        <strong>${escapeHtml(log.adminName || 'Admin')}</strong>
+        <span>${fmtDateTime(log.createdAt)}</span>
+      </div>
+      <div class="admin-log-message">${escapeHtml(log.message)}</div>
+      <div class="admin-log-type">${escapeHtml(log.type)}</div>
+    </article>
+  `).join('');
 }
 
 init();

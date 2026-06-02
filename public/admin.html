@@ -40,6 +40,7 @@
     <button class="tab-btn" onclick="showTab('leaves', this)">Leave Requests</button>
     <button class="tab-btn" onclick="showTab('profile-requests', this)">Profile Changes</button>
     <button class="tab-btn" onclick="showTab('community', this)">Community</button>
+    <button class="tab-btn" onclick="showTab('logs', this)">Logs</button>
     <button class="tab-btn" onclick="showTab('create', this)">Add Worker</button>
   </div>
 
@@ -134,6 +135,13 @@
         <div class="card-header">Community Feed</div>
         <div id="community-feed"><div class="empty-state">Loading...</div></div>
       </div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-logs">
+    <div class="card">
+      <div class="card-header">Admin Activity Logs</div>
+      <div id="admin-logs"><div class="empty-state">Loading...</div></div>
     </div>
   </div>
 

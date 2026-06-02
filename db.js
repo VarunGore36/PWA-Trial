@@ -154,6 +154,8 @@ function emptyDatabase() {
     sentShiftNotifications: [],
     pushVapidKeys: null,
     shiftReassignments: [],
+    nextAdminActivityLogId: 1,
+    adminActivityLogs: [],
     nextCommunityPostId: 1,
     communityPosts: [],
     nextProfileChangeRequestId: 1,
@@ -210,6 +212,15 @@ async function readDb() {
   }
   if (!Array.isArray(db.shiftReassignments)) {
     db.shiftReassignments = [];
+    changed = true;
+  }
+  if (!Array.isArray(db.adminActivityLogs)) {
+    db.adminActivityLogs = [];
+    changed = true;
+  }
+  if (!db.nextAdminActivityLogId) {
+    const maxId = db.adminActivityLogs.reduce((max, item) => Math.max(max, item.id || 0), 0);
+    db.nextAdminActivityLogId = maxId + 1;
     changed = true;
   }
   if (!Array.isArray(db.communityPosts)) {
@@ -695,6 +706,12 @@ function autoReassignDeclinedShift(db, { declinedBy, date, shift }) {
 function autoReassignShiftToMatchingN(db, { sourceUserId, date, shift, reason, leaveId }) {
   const replacementShift = DECLINE_REPLACEMENT_SHIFTS[shift];
   if (!replacementShift) return null;
+  const sourceSchedule = db.schedules.find(item => item.userId === sourceUserId && item.date === date);
+  if (sourceSchedule) sourceSchedule.shift = 'N';
+
+  db.confirmations = db.confirmations.filter(item =>
+    !(item.userId === sourceUserId && item.date === date)
+  );
 
   const candidates = db.schedules
     .filter(item => item.date === date && item.shift === replacementShift && item.userId !== sourceUserId)
@@ -725,14 +742,12 @@ function autoReassignShiftToMatchingN(db, { sourceUserId, date, shift, reason, l
   }
 
   const replacementSchedule = candidates[Math.floor(Math.random() * candidates.length)];
-  const sourceSchedule = db.schedules.find(item => item.userId === sourceUserId && item.date === date);
   const previousReplacementShift = replacementSchedule.shift;
 
   replacementSchedule.shift = shift;
-  if (sourceSchedule) sourceSchedule.shift = replacementShift;
 
   db.confirmations = db.confirmations.filter(item =>
-    !(item.date === date && (item.userId === replacementSchedule.userId || item.userId === sourceUserId))
+    !(item.userId === replacementSchedule.userId && item.date === date)
   );
 
   db.shiftReassignments.push({
@@ -967,12 +982,35 @@ async function createLeave({ userId, date, reason }) {
   return true;
 }
 
-async function leaveAction({ leaveId, action }) {
+function addAdminActivityLog(db, { adminId, type, message, details }) {
+  const admin = db.users.find(user => user.id === Number(adminId));
+  db.adminActivityLogs.push({
+    id: db.nextAdminActivityLogId++,
+    adminId: Number(adminId),
+    adminName: admin ? admin.name : 'Admin',
+    type,
+    message,
+    details: details || {},
+    createdAt: new Date().toISOString()
+  });
+}
+
+async function listAdminActivityLogs() {
+  const db = await readDb();
+  return db.adminActivityLogs
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 200);
+}
+
+async function leaveAction({ leaveId, action, adminId }) {
   const db = await readDb();
   const leave = db.leaves.find(item => item.id === Number(leaveId));
   if (!leave) return false;
+  const leaveWorker = db.users.find(user => user.id === leave.userId);
+  const workerName = leaveWorker ? leaveWorker.name : 'Unknown worker';
   leave.status = action;
   let reassignment = null;
+  let originalShift = null;
   if (action === 'approved') {
     const existing = db.attendance.find(item => item.userId === leave.userId && item.date === leave.date);
     if (existing) existing.status = 'leave';
@@ -980,6 +1018,7 @@ async function leaveAction({ leaveId, action }) {
 
     const schedule = db.schedules.find(item => item.userId === leave.userId && item.date === leave.date);
     if (schedule && isConfirmableShift(schedule.shift)) {
+      originalShift = schedule.shift;
       reassignment = autoReassignShiftToMatchingN(db, {
         sourceUserId: leave.userId,
         date: leave.date,
@@ -988,6 +1027,37 @@ async function leaveAction({ leaveId, action }) {
         leaveId: leave.id
       });
     }
+
+    addAdminActivityLog(db, {
+      adminId,
+      type: 'leave-approved',
+      message: originalShift
+        ? reassignment
+          ? `Approved leave for ${workerName} on ${leave.date}. Changed ${originalShift} to N and reassigned ${originalShift} to ${reassignment.name}.`
+          : `Approved leave for ${workerName} on ${leave.date}. Changed ${originalShift} to N. No matching N-period replacement was available.`
+        : `Approved leave for ${workerName} on ${leave.date}. No active A, B, or C shift required reassignment.`,
+      details: {
+        leaveId: leave.id,
+        workerId: leave.userId,
+        workerName,
+        date: leave.date,
+        originalShift,
+        sourceNewShift: originalShift ? 'N' : null,
+        replacement: reassignment
+      }
+    });
+  } else {
+    addAdminActivityLog(db, {
+      adminId,
+      type: 'leave-rejected',
+      message: `Rejected leave for ${workerName} on ${leave.date}.`,
+      details: {
+        leaveId: leave.id,
+        workerId: leave.userId,
+        workerName,
+        date: leave.date
+      }
+    });
   }
   await writeDb(db);
   return { success: true, reassignment };
@@ -1033,6 +1103,7 @@ module.exports = {
   ensurePushVapidKeys,
   getProfileChangeRequests,
   leaveAction,
+  listAdminActivityLogs,
   listWorkers,
   listCommunityPosts,
   markShiftNotificationSent,

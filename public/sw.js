@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'iiser-shifts-v5';
+const CACHE_VERSION = 'iiser-shifts-v6';
 const APP_SHELL_CACHE = `${CACHE_VERSION}-shell`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 
