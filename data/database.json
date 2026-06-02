@@ -18764,5 +18764,8 @@
     }
   ],
   "nextCommunityPostId": 2,
-  "shiftReassignments": []
+  "shiftReassignments": [],
+  "adminActivityLogs": [],
+  "nextAdminActivityLogId": 1,
+  "temporaryRosterImportedAt": "2026-06-02T11:37:30.046Z"
 }

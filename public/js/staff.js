@@ -45,6 +45,7 @@ function showTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
   if (btn) btn.classList.add('active');
+  if (name === 'schedule') loadSchedule();
   if (name === 'leaves') loadLeaves();
   if (name === 'attendance') loadAttendance();
   if (name === 'confirm') loadPendingConfirm();
@@ -66,6 +67,19 @@ async function init() {
 
   loadSchedule();
   loadNotifications();
+  window.setInterval(refreshStaffDashboard, 30 * 1000);
+}
+
+async function refreshStaffDashboard() {
+  await loadSchedule();
+  const activeTab = document.querySelector('.tab-content.active');
+  if (!activeTab) return;
+
+  if (activeTab.id === 'tab-confirm') await loadPendingConfirm();
+  if (activeTab.id === 'tab-leaves') await loadLeaves();
+  if (activeTab.id === 'tab-attendance') await loadAttendance();
+  if (activeTab.id === 'tab-profile') await loadProfile();
+  if (activeTab.id === 'tab-community') await loadCommunityFeed();
 }
 
 async function changePassword() {

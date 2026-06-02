@@ -129,6 +129,7 @@ function emptyDatabase() {
   return {
     nextUserId: 2,
     nextLeaveId: 1,
+    temporaryRosterImportedAt: null,
     users: [
       {
         id: 1,
@@ -237,7 +238,14 @@ async function readDb() {
     db.nextProfileChangeRequestId = maxId + 1;
     changed = true;
   }
-  if (applyTemporaryRosterSchedules(db)) changed = true;
+  if (!db.temporaryRosterImportedAt) {
+    const hasExistingSchedules = db.schedules.length > 0;
+    const importedSchedules = hasExistingSchedules ? false : applyTemporaryRosterSchedules(db);
+    if (hasExistingSchedules || importedSchedules) {
+      db.temporaryRosterImportedAt = new Date().toISOString();
+      changed = true;
+    }
+  }
   if (changed) await writeDb(db);
   return db;
 }

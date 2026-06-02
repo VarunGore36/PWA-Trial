@@ -59,6 +59,20 @@ async function init() {
   setDefaultDates();
   await loadWorkers();
   await loadStats();
+  window.setInterval(refreshAdminDashboard, 30 * 1000);
+}
+
+async function refreshAdminDashboard() {
+  await loadStats();
+  const activeTab = document.querySelector('.tab-content.active');
+  if (!activeTab) return;
+
+  if (activeTab.id === 'tab-workers') await loadWorkers();
+  if (activeTab.id === 'tab-schedule') await loadScheduleView();
+  if (activeTab.id === 'tab-leaves') await loadLeaves();
+  if (activeTab.id === 'tab-profile-requests') await loadProfileRequests();
+  if (activeTab.id === 'tab-community') await loadCommunityFeed();
+  if (activeTab.id === 'tab-logs') await loadAdminLogs();
 }
 
 async function loadStats() {
@@ -290,7 +304,10 @@ async function leaveAction(leaveId, action) {
   if (res.ok) {
     const data = await res.json();
     await loadLeaves();
-    loadStats();
+    await loadStats();
+    if (document.getElementById('tab-schedule').classList.contains('active')) {
+      await loadScheduleView();
+    }
     if (action === 'approved') {
       const message = data.reassignment
         ? `Leave approved. Shift reassigned to ${data.reassignment.name}.`
