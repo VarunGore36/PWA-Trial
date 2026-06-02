@@ -684,11 +684,20 @@ async function confirmShift({ userId, date, status }) {
 }
 
 function autoReassignDeclinedShift(db, { declinedBy, date, shift }) {
+  return autoReassignShiftToMatchingN(db, {
+    sourceUserId: declinedBy,
+    date,
+    shift,
+    reason: 'declined'
+  });
+}
+
+function autoReassignShiftToMatchingN(db, { sourceUserId, date, shift, reason, leaveId }) {
   const replacementShift = DECLINE_REPLACEMENT_SHIFTS[shift];
   if (!replacementShift) return null;
 
   const candidates = db.schedules
-    .filter(item => item.date === date && item.shift === replacementShift && item.userId !== declinedBy)
+    .filter(item => item.date === date && item.shift === replacementShift && item.userId !== sourceUserId)
     .filter(item => {
       const user = db.users.find(candidate => candidate.id === item.userId);
       if (!user || user.role !== 'staff') return false;
@@ -703,9 +712,12 @@ function autoReassignDeclinedShift(db, { declinedBy, date, shift }) {
     db.shiftReassignments.push({
       date,
       shift,
-      declinedBy,
+      declinedBy: reason === 'declined' ? sourceUserId : null,
+      leaveId: leaveId || null,
+      sourceUserId,
       replacementUserId: null,
       replacementShift,
+      reason,
       status: 'no-replacement',
       createdAt: new Date().toISOString()
     });
@@ -713,22 +725,25 @@ function autoReassignDeclinedShift(db, { declinedBy, date, shift }) {
   }
 
   const replacementSchedule = candidates[Math.floor(Math.random() * candidates.length)];
-  const declinedSchedule = db.schedules.find(item => item.userId === declinedBy && item.date === date);
+  const sourceSchedule = db.schedules.find(item => item.userId === sourceUserId && item.date === date);
   const previousReplacementShift = replacementSchedule.shift;
 
   replacementSchedule.shift = shift;
-  if (declinedSchedule) declinedSchedule.shift = replacementShift;
+  if (sourceSchedule) sourceSchedule.shift = replacementShift;
 
   db.confirmations = db.confirmations.filter(item =>
-    !(item.userId === replacementSchedule.userId && item.date === date)
+    !(item.date === date && (item.userId === replacementSchedule.userId || item.userId === sourceUserId))
   );
 
   db.shiftReassignments.push({
     date,
     shift,
-    declinedBy,
+    declinedBy: reason === 'declined' ? sourceUserId : null,
+    leaveId: leaveId || null,
+    sourceUserId,
     replacementUserId: replacementSchedule.userId,
     replacementShift: previousReplacementShift,
+    reason,
     status: 'assigned',
     createdAt: new Date().toISOString()
   });
@@ -957,13 +972,25 @@ async function leaveAction({ leaveId, action }) {
   const leave = db.leaves.find(item => item.id === Number(leaveId));
   if (!leave) return false;
   leave.status = action;
+  let reassignment = null;
   if (action === 'approved') {
     const existing = db.attendance.find(item => item.userId === leave.userId && item.date === leave.date);
     if (existing) existing.status = 'leave';
     else db.attendance.push({ userId: leave.userId, date: leave.date, status: 'leave' });
+
+    const schedule = db.schedules.find(item => item.userId === leave.userId && item.date === leave.date);
+    if (schedule && isConfirmableShift(schedule.shift)) {
+      reassignment = autoReassignShiftToMatchingN(db, {
+        sourceUserId: leave.userId,
+        date: leave.date,
+        shift: schedule.shift,
+        reason: 'leave-approved',
+        leaveId: leave.id
+      });
+    }
   }
   await writeDb(db);
-  return true;
+  return { success: true, reassignment };
 }
 
 async function staffLeaves(userId) {

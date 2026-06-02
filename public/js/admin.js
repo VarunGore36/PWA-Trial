@@ -287,8 +287,18 @@ async function leaveAction(leaveId, action) {
     body: JSON.stringify({ leave_id: leaveId, action }),
   });
   if (res.ok) {
-    loadLeaves();
+    const data = await res.json();
+    await loadLeaves();
     loadStats();
+    if (action === 'approved') {
+      const message = data.reassignment
+        ? `Leave approved. Shift reassigned to ${data.reassignment.name}.`
+        : 'Leave approved. No matching N-shift replacement was available.';
+      document.getElementById('leaves-table').insertAdjacentHTML(
+        'afterbegin',
+        `<div class="alert alert-success">${message}</div>`
+      );
+    }
   }
 }
 

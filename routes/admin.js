@@ -107,9 +107,9 @@ router.post('/leave-action', async (req, res) => {
     if (!['approved', 'rejected'].includes(action)) {
       return res.status(400).json({ error: 'action must be approved or rejected' });
     }
-    const changed = await db.leaveAction({ leaveId: leave_id, action });
-    if (!changed) return res.status(404).json({ error: 'Leave not found' });
-    res.json({ success: true });
+    const result = await db.leaveAction({ leaveId: leave_id, action });
+    if (!result) return res.status(404).json({ error: 'Leave not found' });
+    res.json({ success: true, reassignment: result.reassignment || null });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
