@@ -21,6 +21,35 @@ const DECLINE_REPLACEMENT_SHIFTS = {
   C: 'N_C'
 };
 
+const GATE_COORDS = {
+  latitude: 23.1547,
+  longitude: 77.2835,
+  radiusMeters: 150
+};
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = deg => deg * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function isWithinPreConfirmWindow(date, shift) {
+  const startMs = shiftStartUtcMs(date, shift);
+  if (!startMs) return false;
+  const now = Date.now();
+  const windowStart = startMs - SHIFT_REMINDER_LEAD_MINUTES * 60 * 1000;
+  return now >= windowStart && now < startMs;
+}
+
+function getGateConfig() {
+  return { ...GATE_COORDS };
+}
+
 function isConfirmableShift(shift) {
   return CONFIRMABLE_SHIFTS.includes(String(shift || '').toUpperCase());
 }
@@ -151,6 +180,8 @@ function emptyDatabase() {
     attendance: [],
     removedWorkers: [],
     passwordResetCodes: [],
+    preconfirmations: [],
+    gateConfirmations: [],
     pushSubscriptions: [],
     sentShiftNotifications: [],
     pushVapidKeys: null,
@@ -159,6 +190,8 @@ function emptyDatabase() {
     adminActivityLogs: [],
     nextCommunityPostId: 1,
     communityPosts: [],
+    nextPollId: 1,
+    polls: [],
     nextProfileChangeRequestId: 1,
     profileChangeRequests: []
   };
@@ -199,6 +232,14 @@ async function readDb() {
     db.passwordResetCodes = [];
     changed = true;
   }
+  if (!Array.isArray(db.preconfirmations)) {
+    db.preconfirmations = [];
+    changed = true;
+  }
+  if (!Array.isArray(db.gateConfirmations)) {
+    db.gateConfirmations = [];
+    changed = true;
+  }
   if (!Array.isArray(db.pushSubscriptions)) {
     db.pushSubscriptions = [];
     changed = true;
@@ -231,6 +272,15 @@ async function readDb() {
   if (!db.nextCommunityPostId) {
     const maxId = db.communityPosts.reduce((max, item) => Math.max(max, item.id || 0), 0);
     db.nextCommunityPostId = maxId + 1;
+    changed = true;
+  }
+  if (!Array.isArray(db.polls)) {
+    db.polls = [];
+    changed = true;
+  }
+  if (!db.nextPollId) {
+    const maxId = db.polls.reduce((max, item) => Math.max(max, item.id || 0), 0);
+    db.nextPollId = maxId + 1;
     changed = true;
   }
   if (!db.nextProfileChangeRequestId) {
@@ -312,13 +362,23 @@ async function getWorker(id) {
     .sort((a, b) => b.date.localeCompare(a.date))
     .map(({ userId, ...item }) => item);
 
+  const preconfirmations = db.preconfirmations
+    .filter(item => item.userId === numericId)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(({ userId, ...item }) => item);
+
+  const gateConfirmations = db.gateConfirmations
+    .filter(item => item.userId === numericId)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(({ userId, ...item }) => item);
+
   const shiftCounts = { A: 0, B: 0, C: 0, W: 0, N: 0, F: 0 };
   schedules.forEach(item => {
     const shift = normalizeShiftForCounts(item.shift);
     if (shiftCounts[shift] !== undefined) shiftCounts[shift] += 1;
   });
 
-  return { user: publicUser(user), schedules, confirmations, leaves, attendance, shiftCounts };
+  return { user: publicUser(user), schedules, confirmations, preconfirmations, gateConfirmations, leaves, attendance, shiftCounts };
 }
 
 async function createWorker(input) {
@@ -601,6 +661,16 @@ async function getDashboardStats() {
       .filter(item => item.date === today)
       .map(item => [item.userId, item.status])
   );
+  const todayPreconfirmed = new Set(
+    db.preconfirmations
+      .filter(item => item.date === today)
+      .map(item => item.userId)
+  );
+  const todayArrived = new Set(
+    db.gateConfirmations
+      .filter(item => item.date === today)
+      .map(item => item.userId)
+  );
   return {
     totalWorkers: db.users.filter(user => user.role === 'staff').length,
     pendingLeaves: db.leaves.filter(item => item.status === 'pending').length,
@@ -609,7 +679,9 @@ async function getDashboardStats() {
       isConfirmableShift(item.shift) &&
       todayConfirmations.get(item.userId) !== 'confirmed'
     ).length,
-    todayShifts: db.schedules.filter(item => item.date === today && isConfirmableShift(item.shift)).length
+    todayShifts: db.schedules.filter(item => item.date === today && isConfirmableShift(item.shift)).length,
+    preConfirmed: todayPreconfirmed.size,
+    arrived: todayArrived.size
   };
 }
 
@@ -643,16 +715,26 @@ async function setSchedule({ userId, date, shift }) {
 
 async function staffSchedule(userId, from, to) {
   const db = await readDb();
+  const numericId = Number(userId);
   return db.schedules
-    .filter(item => item.userId === Number(userId))
+    .filter(item => item.userId === numericId)
     .filter(item => !from || !to || (item.date >= from && item.date <= to))
     .sort((a, b) => a.date.localeCompare(b.date))
     .map(item => {
-      const confirmation = db.confirmations.find(c => c.userId === Number(userId) && c.date === item.date);
+      const confirmation = db.confirmations.find(c => c.userId === numericId && c.date === item.date);
+      const preconfirm = db.preconfirmations.find(p => p.userId === numericId && p.date === item.date);
+      const gateConfirm = db.gateConfirmations.find(g => g.userId === numericId && g.date === item.date);
+      const att = db.attendance.find(a => a.userId === numericId && a.date === item.date);
       return {
         date: item.date,
         shift: item.shift,
-        confirmation: confirmation ? confirmation.status : (isConfirmableShift(item.shift) ? 'pending' : null)
+        confirmation: confirmation ? confirmation.status : (isConfirmableShift(item.shift) ? 'pending' : null),
+        preConfirmed: Boolean(preconfirm),
+        preConfirmedAt: preconfirm ? preconfirm.preConfirmedAt : null,
+        gateConfirmed: Boolean(gateConfirm),
+        gateConfirmedAt: gateConfirm ? gateConfirm.gateConfirmedAt : null,
+        gateDistance: gateConfirm ? gateConfirm.distanceFromGate : null,
+        attendance: att ? att.status : null
       };
     });
 }
@@ -700,6 +782,90 @@ async function confirmShift({ userId, date, status }) {
 
   await writeDb(db);
   return { status: 'ok', reassignment };
+}
+
+async function preConfirmShift({ userId, date }) {
+  const db = await readDb();
+  const numericId = Number(userId);
+  if (date !== istDateString()) return 'not-today';
+  const schedule = db.schedules.find(item => item.userId === numericId && item.date === date);
+  if (!schedule) return 'missing';
+  if (!isConfirmableShift(schedule.shift)) return 'blocked';
+  if (!isWithinPreConfirmWindow(date, schedule.shift)) return 'too-early';
+
+  const declined = db.confirmations.find(c => c.userId === numericId && c.date === date && c.status === 'declined');
+  if (declined) return 'declined';
+
+  const existing = db.preconfirmations.find(p => p.userId === numericId && p.date === date);
+  if (existing) {
+    return { status: 'ok', already: true, preConfirmedAt: existing.preConfirmedAt };
+  }
+
+  const now = new Date().toISOString();
+  db.preconfirmations.push({
+    userId: numericId,
+    date,
+    preConfirmedAt: now
+  });
+
+  const confirmRecord = db.confirmations.find(c => c.userId === numericId && c.date === date);
+  if (confirmRecord) {
+    confirmRecord.status = 'confirmed';
+    confirmRecord.updatedAt = now;
+  } else {
+    db.confirmations.push({ userId: numericId, date, status: 'confirmed', updatedAt: now });
+  }
+
+  await writeDb(db);
+  return { status: 'ok', preConfirmedAt: now };
+}
+
+async function gateConfirmShift({ userId, date, latitude, longitude }) {
+  const db = await readDb();
+  const numericId = Number(userId);
+  if (date !== istDateString()) return 'not-today';
+  const schedule = db.schedules.find(item => item.userId === numericId && item.date === date);
+  if (!schedule) return 'missing';
+  if (!isConfirmableShift(schedule.shift)) return 'blocked';
+
+  const preconfirm = db.preconfirmations.find(p => p.userId === numericId && p.date === date);
+  if (!preconfirm) return 'not-pre-confirmed';
+
+  const existing = db.gateConfirmations.find(g => g.userId === numericId && g.date === date);
+  if (existing) return 'already-arrived';
+
+  const userLat = Number(latitude);
+  const userLng = Number(longitude);
+  if (isNaN(userLat) || isNaN(userLng)) return 'invalid-coords';
+
+  const distance = haversineDistance(userLat, userLng, GATE_COORDS.latitude, GATE_COORDS.longitude);
+  if (distance > GATE_COORDS.radiusMeters) {
+    return { status: 'outside', distance: Math.round(distance), radius: GATE_COORDS.radiusMeters };
+  }
+
+  const now = new Date().toISOString();
+  db.gateConfirmations.push({
+    userId: numericId,
+    date,
+    gpsLat: userLat,
+    gpsLng: userLng,
+    distanceFromGate: Math.round(distance),
+    gateConfirmedAt: now
+  });
+
+  const attExisting = db.attendance.find(a => a.userId === numericId && a.date === date);
+  if (attExisting) {
+    attExisting.status = 'present';
+  } else {
+    db.attendance.push({ userId: numericId, date, status: 'present' });
+  }
+
+  await writeDb(db);
+  return {
+    status: 'ok',
+    distance: Math.round(distance),
+    gateConfirmedAt: now
+  };
 }
 
 function autoReassignDeclinedShift(db, { declinedBy, date, shift }) {
@@ -974,6 +1140,164 @@ async function communityRecipients(target) {
     .map(publicUser);
 }
 
+function canSeePoll(user, poll) {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  if (poll.target === 'all') return true;
+  return poll.target === user.designation;
+}
+
+function publicPoll(poll, viewerId) {
+  const viewerVote = poll.votes.find(v => v.userId === Number(viewerId));
+  const counts = {};
+  poll.options.forEach(o => { counts[o.id] = poll.votes.filter(v => v.optionId === o.id).length; });
+  const totalVotes = poll.votes.length;
+  const votedOptionId = viewerVote ? viewerVote.optionId : null;
+  return {
+    id: poll.id,
+    question: poll.question,
+    options: poll.options,
+    target: poll.target,
+    isAlert: Boolean(poll.isAlert),
+    authorName: poll.authorName,
+    createdAt: poll.createdAt,
+    expiresAt: poll.expiresAt,
+    status: poll.status,
+    totalVotes,
+    counts,
+    votedOptionId
+  };
+}
+
+async function createPoll({ authorId, question, options, target, durationMinutes, isAlert }) {
+  const db = await readDb();
+  const author = db.users.find(user => user.id === Number(authorId) && user.role === 'admin');
+  if (!author) return 'forbidden';
+  const cleanQuestion = String(question || '').trim();
+  if (!cleanQuestion) return 'empty';
+  if (!Array.isArray(options) || options.length < 2) return 'too-few-options';
+  if (options.length > 10) return 'too-many-options';
+  const cleanOptions = options.map((text, i) => ({ id: i + 1, text: String(text || '').trim() })).filter(o => o.text);
+  if (cleanOptions.length < 2) return 'too-few-options';
+
+  const validTargets = ['all', ...new Set(db.users.filter(user => user.role === 'staff').map(user => user.designation).filter(Boolean))];
+  const cleanTarget = validTargets.includes(target) ? target : 'all';
+  const duration = Math.max(1, Math.min(Number(durationMinutes) || 1440, 43200));
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + duration * 60 * 1000);
+
+  const poll = {
+    id: db.nextPollId++,
+    authorId: author.id,
+    authorName: author.name,
+    question: cleanQuestion,
+    options: cleanOptions,
+    target: cleanTarget,
+    isAlert: Boolean(isAlert),
+    durationMinutes: duration,
+    startsAt: now.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    status: 'active',
+    createdAt: now.toISOString(),
+    votes: []
+  };
+  db.polls.push(poll);
+  await writeDb(db);
+  return poll;
+}
+
+async function listPolls(userId) {
+  const db = await readDb();
+  const user = db.users.find(item => item.id === Number(userId));
+  if (!user) return [];
+  const now = new Date();
+  db.polls.forEach(poll => {
+    if (poll.status === 'active' && new Date(poll.expiresAt) < now) {
+      poll.status = 'closed';
+    }
+  });
+  return db.polls
+    .filter(poll => canSeePoll(user, poll))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .map(poll => publicPoll(poll, userId));
+}
+
+async function votePoll({ userId, pollId, optionId }) {
+  const db = await readDb();
+  const numericUserId = Number(userId);
+  const user = db.users.find(item => item.id === numericUserId);
+  if (!user) return 'missing-user';
+
+  const poll = db.polls.find(item => item.id === Number(pollId));
+  if (!poll || !canSeePoll(user, poll)) return 'missing';
+  if (poll.status === 'closed') return 'closed';
+  if (new Date(poll.expiresAt) < new Date()) {
+    poll.status = 'closed';
+    await writeDb(db);
+    return 'closed';
+  }
+
+  if (!poll.options.some(o => o.id === Number(optionId))) return 'invalid-option';
+
+  if (!Array.isArray(poll.votes)) poll.votes = [];
+  const existing = poll.votes.find(v => v.userId === numericUserId);
+  if (existing) {
+    existing.optionId = Number(optionId);
+    existing.votedAt = new Date().toISOString();
+  } else {
+    poll.votes.push({ userId: numericUserId, optionId: Number(optionId), votedAt: new Date().toISOString() });
+  }
+
+  await writeDb(db);
+  return publicPoll(poll, userId);
+}
+
+async function getMonthlyAttendanceReport(year, month) {
+  const db = await readDb();
+  const monthStr = String(Number(month)).padStart(2, '0');
+  const yearStr = String(Number(year));
+  const daysInMonth = new Date(yearStr, monthStr, 0).getDate();
+  const staffUsers = db.users.filter(u => u.role === 'staff').sort((a, b) => a.name.localeCompare(b.name));
+
+  const rows = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${yearStr}-${monthStr}-${String(d).padStart(2, '0')}`;
+    for (const user of staffUsers) {
+      const schedule = db.schedules.find(s => s.userId === user.id && s.date === dateStr);
+      if (!schedule) continue;
+      const preconfirm = db.preconfirmations.find(p => p.userId === user.id && p.date === dateStr);
+      const gateConfirm = db.gateConfirmations.find(g => g.userId === user.id && g.date === dateStr);
+      const attendance = db.attendance.find(a => a.userId === user.id && a.date === dateStr);
+      const leave = db.leaves.find(l => l.userId === user.id && l.date === dateStr && l.status === 'approved');
+      const confirmation = db.confirmations.find(c => c.userId === user.id && c.date === dateStr);
+
+      const shiftDef = SHIFT_STARTS[schedule.shift];
+      const shiftStart = shiftDef ? `${dateStr}T${shiftDef.time}:00+05:30` : '';
+      const shiftEndTime = { A: '14:00', B: '22:00', C: '06:00', G: '17:00' };
+      const shiftEnd = shiftEndTime[schedule.shift] ? `${dateStr}T${shiftEndTime[schedule.shift]}:00+05:30` : '';
+
+      rows.push({
+        name: user.name,
+        ssid: user.ssid,
+        designation: user.designation,
+        date: dateStr,
+        shift: schedule.shift,
+        shiftStart,
+        shiftEnd,
+        confirmation: confirmation ? confirmation.status : 'pending',
+        preConfirmedAt: preconfirm ? preconfirm.preConfirmedAt : '',
+        gateConfirmedAt: gateConfirm ? gateConfirm.gateConfirmedAt : '',
+        gateLat: gateConfirm ? gateConfirm.gpsLat : '',
+        gateLng: gateConfirm ? gateConfirm.gpsLng : '',
+        gateDistance: gateConfirm ? gateConfirm.distanceFromGate : '',
+        attendance: leave ? 'leave' : (attendance ? attendance.status : 'absent'),
+        leaveReason: leave ? leave.reason : ''
+      });
+    }
+  }
+  return rows;
+}
+
 async function createLeave({ userId, date, reason }) {
   const db = await readDb();
   const numericId = Number(userId);
@@ -1099,6 +1423,9 @@ module.exports = {
   createProfileChangeRequest,
   changePassword,
   confirmShift,
+  preConfirmShift,
+  gateConfirmShift,
+  getGateConfig,
   decideProfileChangeRequest,
   findAdminByEmail,
   findStaffByPhone,
@@ -1132,5 +1459,9 @@ module.exports = {
   staffProfileChangeRequests,
   updateWorkerProfile,
   staffSchedule,
-  writeDb
+  writeDb,
+  createPoll,
+  listPolls,
+  votePoll,
+  getMonthlyAttendanceReport
 };

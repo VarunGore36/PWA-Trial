@@ -74,8 +74,20 @@
 
     <div class="tab-content" id="tab-confirm">
       <div class="card">
-        <div class="card-header">This Week's Confirmation Window</div>
+        <div class="card-header">Shift Confirmation</div>
         <div id="confirm-list"><div class="empty-state">Loading...</div></div>
+      </div>
+      <div class="card" id="gate-checkin-card" style="display:none;">
+        <div class="card-header">Gate Check-In</div>
+        <div id="gate-checkin-status"></div>
+        <div class="gate-checkin-section">
+          <div id="gate-location-status" class="gate-checkin-status">Checking location...</div>
+          <div class="gate-checkin-actions">
+            <button class="btn btn-checkin" id="btn-gate-checkin" onclick="gateConfirmShift()" disabled>Check In At Gate</button>
+            <button class="btn btn-outline btn-sm" onclick="refreshGateCheckinStatus()" style="font-size:12px;">Refresh Location</button>
+          </div>
+          <div id="gate-coords-display" class="gate-checkin-coords"></div>
+        </div>
       </div>
     </div>
 
@@ -148,7 +160,13 @@
 
     <div class="tab-content" id="tab-community">
       <div class="card community-feed-card">
-        <div class="card-header">Community Feed</div>
+        <div class="card-header">
+          Community Feed
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-outline btn-sm active" id="staff-feed-filter-posts" onclick="setStaffCommunityFilter('posts')">Posts</button>
+            <button class="btn btn-outline btn-sm" id="staff-feed-filter-polls" onclick="setStaffCommunityFilter('polls')">Polls</button>
+          </div>
+        </div>
         <div id="community-feed"><div class="empty-state">Loading...</div></div>
       </div>
     </div>

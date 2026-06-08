@@ -97,4 +97,54 @@ router.post('/:id/reaction', async (req, res) => {
   }
 });
 
+router.get('/polls', async (req, res) => {
+  try {
+    res.json(await db.listPolls(req.session.userId));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/poll', async (req, res) => {
+  try {
+    if (req.session.role !== 'admin') {
+      return res.status(403).json({ error: 'Only admins can create polls' });
+    }
+    const { question, options, target, durationMinutes, isAlert } = req.body;
+    const result = await db.createPoll({
+      authorId: req.session.userId,
+      question,
+      options: JSON.parse(options || '[]'),
+      target: target || 'all',
+      durationMinutes: Number(durationMinutes) || 1440,
+      isAlert: isAlert === 'true' || isAlert === true
+    });
+    if (result === 'empty') return res.status(400).json({ error: 'Poll question is required' });
+    if (result === 'too-few-options') return res.status(400).json({ error: 'At least 2 options are required' });
+    if (result === 'too-many-options') return res.status(400).json({ error: 'Maximum 10 options allowed' });
+    res.json({ success: true, poll: result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/poll/:id/vote', async (req, res) => {
+  try {
+    if (req.session.role !== 'staff') {
+      return res.status(403).json({ error: 'Only staff can vote' });
+    }
+    const result = await db.votePoll({
+      userId: req.session.userId,
+      pollId: req.params.id,
+      optionId: req.body.optionId
+    });
+    if (result === 'missing') return res.status(404).json({ error: 'Poll not found' });
+    if (result === 'closed') return res.status(400).json({ error: 'This poll has ended' });
+    if (result === 'invalid-option') return res.status(400).json({ error: 'Invalid option' });
+    res.json({ success: true, poll: result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

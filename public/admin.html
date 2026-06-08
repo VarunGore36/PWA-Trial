@@ -32,6 +32,8 @@
     <div class="stat-card stat-card-click" onclick="openStatView('leaves')"><div class="stat-value" id="s-leaves">-</div><div class="stat-label">Pending Leaves</div></div>
     <div class="stat-card stat-card-click" onclick="openStatView('unconfirmed')"><div class="stat-value" id="s-confirm">-</div><div class="stat-label">Unconfirmed Shifts</div></div>
     <div class="stat-card stat-card-click" onclick="openStatView('today')"><div class="stat-value" id="s-today">-</div><div class="stat-label">Today's Shifts</div></div>
+    <div class="stat-card"><div class="stat-value" id="s-preconfirmed">-</div><div class="stat-label">Pre-Confirmed</div></div>
+    <div class="stat-card"><div class="stat-value" id="s-arrived">-</div><div class="stat-label">Arrived At Gate</div></div>
   </div>
 
   <div class="tab-nav">
@@ -42,6 +44,7 @@
     <button class="tab-btn" onclick="showTab('community', this)">Community</button>
     <button class="tab-btn" onclick="showTab('logs', this)">Logs</button>
     <button class="tab-btn" onclick="showTab('create', this)">Add Worker</button>
+    <button class="tab-btn" onclick="showTab('reports', this)">Reports</button>
   </div>
 
   <div class="tab-content active" id="tab-workers">
@@ -101,38 +104,100 @@
 
   <div class="tab-content" id="tab-community">
     <div class="community-layout">
-      <div class="card community-compose">
-        <div class="card-header">Post to Community</div>
-        <div id="community-msg"></div>
-        <div class="form-group">
-          <label class="form-label">Message</label>
-          <textarea id="community-text" class="form-control" rows="4" placeholder="Write an update, instruction, or alert..."></textarea>
+      <div class="community-compose-column">
+        <div class="card community-compose">
+          <div class="card-header">Post to Community</div>
+          <div id="community-msg"></div>
+          <div class="form-group">
+            <label class="form-label">Message</label>
+            <textarea id="community-text" class="form-control" rows="3" placeholder="Write an update, instruction, or alert..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Audience</label>
+            <select id="community-target" class="form-control">
+              <option value="all">Everyone</option>
+              <option value="SG">Security Guard (SG)</option>
+              <option value="DSG">Deputy Security Guard (DSG)</option>
+              <option value="SS">Senior Supervisor (SS)</option>
+              <option value="LSG">Lady Security Guard (LSG)</option>
+              <option value="GM">Gunman (GM)</option>
+              <option value="FSG">Fire Security Guard (FSG)</option>
+              <option value="I/C">Shift In-Charge (I/C)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Media (optional)</label>
+            <input type="file" id="community-media" class="form-control" accept="image/*,video/*" multiple>
+          </div>
+          <label class="community-alert-toggle">
+            <input type="checkbox" id="community-alert">
+            <span>Alert / emergency post</span>
+          </label>
+          <button class="btn btn-primary" onclick="createCommunityPost()">Post</button>
         </div>
-        <div class="form-group">
-          <label class="form-label">Audience</label>
-          <select id="community-target" class="form-control">
-            <option value="all">Everyone</option>
-            <option value="SG">Security Guard (SG)</option>
-            <option value="DSG">Deputy Security Guard (DSG)</option>
-            <option value="SS">Senior Supervisor (SS)</option>
-            <option value="LSG">Lady Security Guard (LSG)</option>
-            <option value="GM">Gunman (GM)</option>
-            <option value="FSG">Fire Security Guard (FSG)</option>
-            <option value="I/C">Shift In-Charge (I/C)</option>
-          </select>
+
+        <div class="card community-compose" style="margin-top:16px;">
+          <div class="card-header">Create a Poll</div>
+          <div id="poll-msg"></div>
+          <div class="form-group">
+            <label class="form-label">Question</label>
+            <input type="text" id="poll-question" class="form-control" placeholder="Ask a question...">
+          </div>
+          <div id="poll-options-container">
+            <div class="form-group poll-option-row">
+              <label class="form-label">Option 1</label>
+              <input type="text" class="form-control poll-option-input" placeholder="Option text">
+            </div>
+            <div class="form-group poll-option-row">
+              <label class="form-label">Option 2</label>
+              <input type="text" class="form-control poll-option-input" placeholder="Option text">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:14px;">
+            <button class="btn btn-outline btn-sm" type="button" onclick="addPollOption()">+ Add Option</button>
+            <button class="btn btn-outline btn-sm" type="button" onclick="removePollOption()" style="color:var(--danger);">- Remove</button>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Target Audience</label>
+            <select id="poll-target" class="form-control">
+              <option value="all">Everyone</option>
+              <option value="SG">Security Guard (SG)</option>
+              <option value="DSG">Deputy Security Guard (DSG)</option>
+              <option value="SS">Senior Supervisor (SS)</option>
+              <option value="LSG">Lady Security Guard (LSG)</option>
+              <option value="GM">Gunman (GM)</option>
+              <option value="FSG">Fire Security Guard (FSG)</option>
+              <option value="I/C">Shift In-Charge (I/C)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Duration (minutes)</label>
+            <select id="poll-duration" class="form-control">
+              <option value="60">1 hour</option>
+              <option value="180">3 hours</option>
+              <option value="360">6 hours</option>
+              <option value="720">12 hours</option>
+              <option value="1440" selected>1 day</option>
+              <option value="2880">2 days</option>
+              <option value="4320">3 days</option>
+              <option value="10080">7 days</option>
+            </select>
+          </div>
+          <label class="community-alert-toggle">
+            <input type="checkbox" id="poll-alert">
+            <span>Send push alert with this poll</span>
+          </label>
+          <button class="btn btn-primary" onclick="createPoll()" style="margin-top:10px;">Launch Poll</button>
         </div>
-        <div class="form-group">
-          <label class="form-label">Media</label>
-          <input type="file" id="community-media" class="form-control" accept="image/*,video/*" multiple>
-        </div>
-        <label class="community-alert-toggle">
-          <input type="checkbox" id="community-alert">
-          <span>Alert / emergency post</span>
-        </label>
-        <button class="btn btn-primary" onclick="createCommunityPost()">Post</button>
       </div>
       <div class="card community-feed-card">
-        <div class="card-header">Community Feed</div>
+        <div class="card-header">
+          Community Feed
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button class="btn btn-outline btn-sm active" id="feed-filter-posts" onclick="setCommunityFilter('posts')">Posts</button>
+            <button class="btn btn-outline btn-sm" id="feed-filter-polls" onclick="setCommunityFilter('polls')">Polls</button>
+          </div>
+        </div>
         <div id="community-feed"><div class="empty-state">Loading...</div></div>
       </div>
     </div>
@@ -182,6 +247,34 @@
         <input type="password" id="new-password" class="form-control" placeholder="Initial password">
       </div>
       <button class="btn btn-primary" onclick="createWorker()">Create Worker</button>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-reports">
+    <div class="card" style="max-width:600px;">
+      <div class="card-header">Download Monthly Attendance Report</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Download a CSV report containing attendance, gate check-in times, and GPS data for all staff for a selected month.</p>
+      <div id="report-msg"></div>
+      <div style="display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Month</label>
+          <select id="report-month" class="form-control">
+            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label class="form-label">Year</label>
+          <select id="report-year" class="form-control"></select>
+        </div>
+        <button class="btn btn-primary" onclick="downloadReport()">Download CSV</button>
+      </div>
+    </div>
+    <div class="card" style="max-width:600px;margin-top:16px;">
+      <div class="card-header">Live Attendance Summary</div>
+      <div id="report-summary"><div class="empty-state">Select a month and year above to preview summary.</div></div>
     </div>
   </div>
 </div>

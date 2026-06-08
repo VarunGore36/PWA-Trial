@@ -315,6 +315,10 @@ th.worker-sticky {
 .badge-approved { background: #d1e7dd; color: #0a3622; }
 .badge-rejected { background: #f8d7da; color: #842029; }
 .badge-superseded { background: #e9ecef; color: #495057; }
+.badge-pre-confirmed { background: #cce5ff; color: #004085; }
+.badge-arrived { background: #d4edda; color: #155724; }
+.badge-present { background: #28a745; color: #fff; }
+.badge-awaiting { background: #fff3cd; color: #856404; }
 
 /*search bar*/
 .search-bar {
@@ -474,9 +478,22 @@ th.worker-sticky {
   gap: 16px;
   align-items: start;
 }
+.community-compose-column {
+  position: sticky;
+  top: 76px;
+}
 .community-compose {
   position: sticky;
   top: 76px;
+}
+.poll-option-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.poll-option-row .form-label {
+  min-width: 60px;
+  font-size: 12px;
 }
 .community-alert-toggle {
   display: flex;
@@ -628,6 +645,58 @@ th.worker-sticky {
   font-size: 14px;
 }
 
+.gate-checkin-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-top: 12px;
+  background: #f8faff;
+}
+.gate-checkin-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+.gate-checkin-coords {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.gate-checkin-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.btn-checkin {
+  background: #28a745;
+  color: #fff;
+}
+.btn-checkin:hover { background: #218838; }
+.btn-checkin:disabled {
+  background: #b8daff;
+  cursor: not-allowed;
+}
+.confirm-status-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.confirm-status-label {
+  font-size: 13px;
+  color: var(--muted);
+  min-width: 140px;
+}
+.today-status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .pwa-install-btn,
 .pwa-status,
 .pwa-update {
@@ -742,6 +811,7 @@ th.worker-sticky {
   .tab-btn { flex: 0 0 auto; padding: 10px 14px; }
   .community-layout { grid-template-columns: 1fr; }
   .community-compose { position: static; }
+  .community-compose-column { position: static; }
   .today-shift-card { align-items: flex-start; flex-direction: column; }
   .staff-schedule-nav { grid-template-columns: 38px minmax(0, 1fr) 38px; }
   .pwa-install-btn { bottom: max(12px, env(safe-area-inset-bottom)); right: 12px; }

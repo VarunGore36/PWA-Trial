@@ -50,7 +50,7 @@ function showTab(name, btn) {
   if (name === 'attendance') loadAttendance();
   if (name === 'confirm') loadPendingConfirm();
   if (name === 'profile') loadProfile();
-  if (name === 'community') loadCommunityFeed();
+  if (name === 'community') { staffCommunityFilter = 'posts'; loadCommunityFeed(); loadStaffCommunityPolls(); }
 }
 
 async function init() {
@@ -65,6 +65,7 @@ async function init() {
     return;
   }
 
+  await loadGateConfig();
   loadSchedule();
   loadNotifications();
   window.setInterval(refreshStaffDashboard, 30 * 1000);
@@ -79,7 +80,7 @@ async function refreshStaffDashboard() {
   if (activeTab.id === 'tab-leaves') await loadLeaves();
   if (activeTab.id === 'tab-attendance') await loadAttendance();
   if (activeTab.id === 'tab-profile') await loadProfile();
-  if (activeTab.id === 'tab-community') await loadCommunityFeed();
+  if (activeTab.id === 'tab-community') { await loadCommunityFeed(); await loadStaffCommunityPolls(); }
 }
 
 async function changePassword() {
@@ -153,21 +154,32 @@ function renderScheduleWindow() {
   const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   const focus = staffScheduleRows[focusIndex];
   const focusDate = new Date(focus.date + 'T00:00:00');
+  const today = todayStr();
 
   const cards = visible.map(item => {
     const dt = new Date(item.date + 'T00:00:00');
     const isFocus = item.date === focus.date;
-    const isToday = item.date === todayStr();
+    const isToday = item.date === today;
+    let extraStatus = '';
+    if (isToday && ['A', 'B', 'C', 'G'].includes(item.shift)) {
+      const flowStatus = getConfirmationFlowStatus(item);
+      extraStatus = `<div style="font-size:11px;margin-top:4px;">${confirmationStatusBadge(flowStatus)}</div>`;
+    }
     return `
       <div class="shift-strip-item ${isFocus ? 'active' : ''}">
         <div>
           <div class="shift-strip-day">${dayNames[dt.getDay()]}</div>
           <div class="shift-strip-date">${fmtDate(item.date)}${isToday ? ' · Today' : ''}</div>
+          ${extraStatus}
         </div>
         ${shiftBadge(item.shift)}
       </div>
     `;
   }).join('');
+
+  const focusFlowStatus = focus.date === today && ['A', 'B', 'C', 'G'].includes(focus.shift)
+    ? getConfirmationFlowStatus(focus)
+    : null;
 
   container.innerHTML = `
     <div class="staff-schedule-nav">
@@ -175,7 +187,8 @@ function renderScheduleWindow() {
       <div class="today-shift-card">
         <div>
           <div class="today-shift-date">${dayNames[focusDate.getDay()]}, ${fmtDate(focus.date)}</div>
-          <div class="today-shift-copy">${focus.date === todayStr() ? 'Your assigned shift for today' : 'Selected assigned shift'}</div>
+          <div class="today-shift-copy">${focus.date === today ? 'Your assigned shift for today' : 'Selected assigned shift'}</div>
+          ${focusFlowStatus ? `<div style="margin-top:8px;">${confirmationStatusBadge(focusFlowStatus)}</div>` : ''}
         </div>
         <div class="today-shift-badge">${shiftBadge(focus.shift)}</div>
       </div>
@@ -249,6 +262,175 @@ async function subscribeForShiftNotifications() {
   if (!saveRes.ok) throw new Error('Subscription save failed');
 }
 
+let gateConfig = null;
+let currentPosition = null;
+
+async function loadGateConfig() {
+  const res = await fetch('/api/staff/gate-config');
+  if (res.ok) gateConfig = await res.json();
+}
+
+function statusText(status) {
+  const labels = {
+    'awaiting-preconfirm': 'Awaiting Pre-Confirmation',
+    'pre-confirmed': 'Pre-Confirmed',
+    'awaiting-gate': 'Awaiting Gate Check-In',
+    'arrived': 'Checked In At Gate',
+    'present': 'Present',
+    'declined': 'Declined'
+  };
+  return labels[status] || status || 'Unknown';
+}
+
+function confirmationStatusBadge(status) {
+  const cls = {
+    'awaiting-preconfirm': 'awaiting',
+    'pre-confirmed': 'pre-confirmed',
+    'awaiting-gate': 'pre-confirmed',
+    'arrived': 'arrived',
+    'present': 'present',
+    'declined': 'declined'
+  };
+  return `<span class="badge badge-${cls[status] || 'pending'}">${statusText(status)}</span>`;
+}
+
+function getConfirmationFlowStatus(item) {
+  if (item.confirmation === 'declined') return 'declined';
+  if (item.gateConfirmed) return 'present';
+  if (item.preConfirmed) {
+    const now = Date.now();
+    const startMs = Date.parse(item.date + 'T00:00:00+05:30');
+    const hours = ['A', 'B', 'C', 'G'];
+    const shiftHours = { A: 6, B: 14, C: 22, G: 9 };
+    if (hours.includes(item.shift)) {
+      const shiftStart = Date.parse(`${item.date}T${String(shiftHours[item.shift]).padStart(2,'0')}:00:00+05:30`);
+      if (now >= shiftStart) return 'arrived';
+    }
+    return 'awaiting-gate';
+  }
+  return 'awaiting-preconfirm';
+}
+
+async function preConfirmShift(date) {
+  const res = await fetch('/api/staff/pre-confirm-shift', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date }),
+  });
+  const data = await res.json();
+  if (res.ok) {
+    await loadPendingConfirm();
+    await loadSchedule();
+    const list = document.getElementById('confirm-list');
+    list.insertAdjacentHTML('afterbegin', '<div class="alert alert-success">Pre-confirmed. Please check in at the gate when you arrive.</div>');
+    return;
+  }
+  document.getElementById('confirm-list').insertAdjacentHTML(
+    'afterbegin',
+    `<div class="alert alert-error">${data.error || 'Pre-confirmation failed.'}</div>`
+  );
+}
+
+function haversineDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+async function getCurrentPosition() {
+  if (!navigator.geolocation) {
+    throw new Error('Geolocation is not supported by this browser');
+  }
+  return new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      err => reject(err),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+    );
+  });
+}
+
+async function refreshGateCheckinStatus() {
+  const statusEl = document.getElementById('gate-location-status');
+  const coordsEl = document.getElementById('gate-coords-display');
+  const btn = document.getElementById('btn-gate-checkin');
+  statusEl.textContent = 'Fetching your location...';
+  btn.disabled = true;
+
+  try {
+    const pos = await getCurrentPosition();
+    currentPosition = pos;
+    const dist = Math.round(haversineDistance(pos.lat, pos.lng, gateConfig.latitude, gateConfig.longitude));
+    coordsEl.textContent = `Your location: ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)} · Distance from gate: ${dist}m · Allowed radius: ${gateConfig.radiusMeters}m`;
+
+    if (dist <= gateConfig.radiusMeters) {
+      statusEl.innerHTML = '<span style="color:var(--success);font-weight:600;">✓ You are at the gate area</span>';
+      btn.disabled = false;
+    } else {
+      statusEl.innerHTML = `<span style="color:var(--danger);">✗ You are ${dist}m from the gate. Please reach the gate area (within ${gateConfig.radiusMeters}m).</span>`;
+      btn.disabled = true;
+    }
+  } catch (err) {
+    statusEl.textContent = 'Could not get location. Please enable location access and try again.';
+    coordsEl.textContent = err.message || 'Location unavailable';
+    btn.disabled = true;
+  }
+}
+
+async function gateConfirmShift() {
+  const today = todayStr();
+  const btn = document.getElementById('btn-gate-checkin');
+  btn.disabled = true;
+  btn.textContent = 'Checking in...';
+
+  let pos = currentPosition;
+  if (!pos) {
+    try {
+      pos = await getCurrentPosition();
+    } catch (err) {
+      document.getElementById('gate-location-status').textContent = 'Could not get location. Please try again.';
+      btn.disabled = false;
+      btn.textContent = 'Check In At Gate';
+      return;
+    }
+  }
+
+  const res = await fetch('/api/staff/gate-confirm-shift', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date: today, latitude: pos.lat, longitude: pos.lng }),
+  });
+  const data = await res.json();
+
+  if (res.ok) {
+    document.getElementById('gate-checkin-card').style.display = 'none';
+    document.getElementById('confirm-list').insertAdjacentHTML(
+      'afterbegin',
+      `<div class="alert alert-success">✓ Checked in at gate (${data.distance}m from gate). Attendance marked as Present.</div>`
+    );
+    await loadPendingConfirm();
+    await loadSchedule();
+    return;
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Check In At Gate';
+
+  if (res.status === 403) {
+    document.getElementById('gate-location-status').innerHTML =
+      `<span style="color:var(--danger);">✗ ${data.error}</span>`;
+  } else {
+    document.getElementById('confirm-list').insertAdjacentHTML(
+      'afterbegin',
+      `<div class="alert alert-error">${data.error || 'Gate check-in failed.'}</div>`
+    );
+  }
+}
+
 function currentWeekRange() {
   const now = new Date();
   const day = now.getDay();
@@ -272,36 +454,93 @@ async function loadPendingConfirm() {
   }
 
   const shiftLabels = { A: 'Morning (A)', B: 'Noon (B)', C: 'Evening (C)', G: 'General (G)' };
+  const today = todayStr();
+  const todayRow = week.find(p => p.date === today);
+  const confirmable = todayRow && ['A', 'B', 'C', 'G'].includes(todayRow.shift);
+
+  let todayCardHtml = '';
+  let showGateCard = false;
+
+  if (todayRow && confirmable) {
+    const flowStatus = getConfirmationFlowStatus(todayRow);
+    const isDeclined = todayRow.confirmation === 'declined';
+    const shiftHours = { A: 6, B: 14, C: 22, G: 9 };
+    const shiftStartMs = Date.parse(`${today}T${String(shiftHours[todayRow.shift]).padStart(2,'0')}:00:00+05:30`);
+    const windowStartMs = shiftStartMs - 60 * 60 * 1000;
+    const now = Date.now();
+    const withinWindow = now >= windowStartMs && now < shiftStartMs;
+
+    let actionButtons = '';
+    if (!isDeclined) {
+      if (flowStatus === 'awaiting-preconfirm') {
+        actionButtons = withinWindow
+          ? `<button class="btn btn-primary btn-sm" onclick="preConfirmShift('${today}')">Pre-Confirm Shift</button>
+             <button class="btn btn-danger btn-sm" onclick="confirmShift('${today}', 'declined')" style="margin-left:4px;">Decline</button>`
+          : `<button class="btn btn-outline btn-sm" disabled title="Available 1 hour before shift start">Pre-Confirm (unavailable yet)</button>
+             <button class="btn btn-danger btn-sm" onclick="confirmShift('${today}', 'declined')" style="margin-left:4px;">Decline</button>`;
+      } else if (flowStatus === 'awaiting-gate') {
+        showGateCard = true;
+        actionButtons = `<span class="badge badge-pre-confirmed">Pre-Confirmed</span>
+          <button class="btn btn-checkin btn-sm" onclick="document.querySelector('.tab-btn[onclick*=\\'confirm\\']').click();refreshGateCheckinStatus();document.getElementById('gate-checkin-card').style.display='block';">Check In At Gate</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmShift('${today}', 'declined')" style="margin-left:4px;">Decline</button>`;
+      } else if (flowStatus === 'arrived' || flowStatus === 'present') {
+        actionButtons = confirmationStatusBadge('present');
+      }
+    } else {
+      actionButtons = statusBadge('declined');
+    }
+
+    todayCardHtml = `
+      <div class="card" style="margin-bottom:16px;border-left:3px solid var(--primary);">
+        <div class="card-header" style="border-bottom:none;margin-bottom:4px;padding-bottom:0;">Today · ${fmtDate(today)} · ${shiftBadge(todayRow.shift)} ${shiftLabels[todayRow.shift] || todayRow.shift}</div>
+        <div class="confirm-status-row">
+          <span class="confirm-status-label">Status:</span>
+          ${confirmationStatusBadge(flowStatus)}
+        </div>
+        <div style="margin-top:12px;" class="confirm-status-row">
+          ${actionButtons}
+        </div>
+      </div>
+    `;
+  }
+
   container.innerHTML = `
+    ${todayCardHtml}
     <div class="alert alert-info">You will receive a push notification 1 hour before each confirmable shift.</div>
     <table>
-      <thead><tr><th>Date</th><th>Day</th><th>Shift</th><th>Confirmation</th></tr></thead>
+      <thead><tr><th>Date</th><th>Day</th><th>Shift</th><th>Status</th></tr></thead>
       <tbody>
         ${week.map(p => {
           const dt = new Date(p.date + 'T00:00:00');
           const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-          const confirmable = ['A', 'B', 'C', 'G'].includes(p.shift);
-          const isToday = p.date === todayStr();
-          const confirmationCell = !confirmable
-            ? '-'
-            : !isToday
-              ? '<span style="font-size:12px;color:var(--muted);">Unavailable</span>'
-            : p.confirmation && p.confirmation !== 'pending'
-              ? statusBadge(p.confirmation)
-              : `
-                <button class="btn btn-success btn-sm" onclick="confirmShift('${p.date}', 'confirmed')">Confirm</button>
-                <button class="btn btn-danger btn-sm" onclick="confirmShift('${p.date}', 'declined')" style="margin-left:4px;">Decline</button>
-              `;
+          const confirmableShift = ['A', 'B', 'C', 'G'].includes(p.shift);
+          const isTodayRow = p.date === today;
+          let statusCell;
+          if (!confirmableShift) {
+            statusCell = '-';
+          } else if (!isTodayRow) {
+            statusCell = '<span style="font-size:12px;color:var(--muted);">Unavailable</span>';
+          } else {
+            statusCell = confirmationStatusBadge(getConfirmationFlowStatus(p));
+          }
           return `<tr>
             <td>${fmtDate(p.date)}</td>
             <td>${dayNames[dt.getDay()]}</td>
             <td>${shiftBadge(p.shift)} ${shiftLabels[p.shift] || p.shift}</td>
-            <td>${confirmationCell}</td>
+            <td>${statusCell}</td>
           </tr>`;
         }).join('')}
       </tbody>
     </table>
   `;
+
+  const gateCard = document.getElementById('gate-checkin-card');
+  if (showGateCard) {
+    gateCard.style.display = 'block';
+    refreshGateCheckinStatus();
+  } else {
+    gateCard.style.display = 'none';
+  }
 }
 
 async function confirmShift(date, status) {
@@ -537,6 +776,18 @@ function renderCommunityPosts(posts) {
   `).join('');
 }
 
+let staffCommunityFilter = 'posts';
+let staffCommunityPolls = [];
+
+function setStaffCommunityFilter(filter) {
+  staffCommunityFilter = filter;
+  document.getElementById('staff-feed-filter-posts').classList.toggle('active', filter === 'posts');
+  document.getElementById('staff-feed-filter-polls').classList.toggle('active', filter === 'polls');
+  document.getElementById('community-feed').innerHTML = '<div class="empty-state">Loading...</div>';
+  if (filter === 'posts') loadCommunityFeed();
+  else renderStaffCommunityPolls();
+}
+
 async function loadCommunityFeed() {
   const res = await fetch('/api/community');
   if (!res.ok) return;
@@ -550,6 +801,84 @@ async function reactCommunity(postId, reaction) {
     body: JSON.stringify({ reaction })
   });
   if (res.ok) loadCommunityFeed();
+}
+
+async function loadStaffCommunityPolls() {
+  const res = await fetch('/api/community/polls');
+  if (!res.ok) return;
+  staffCommunityPolls = await res.json();
+  if (staffCommunityFilter === 'polls') renderStaffCommunityPolls();
+}
+
+async function voteStaffPoll(pollId, optionId) {
+  const res = await fetch(`/api/community/poll/${pollId}/vote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ optionId })
+  });
+  if (res.ok) {
+    const data = await res.json();
+    const idx = staffCommunityPolls.findIndex(p => p.id === data.poll.id);
+    if (idx !== -1) staffCommunityPolls[idx] = data.poll;
+    renderStaffCommunityPolls();
+  } else {
+    const data = await res.json();
+    document.getElementById('community-feed').insertAdjacentHTML(
+      'afterbegin',
+      `<div class="alert alert-error">${data.error || 'Vote failed.'}</div>`
+    );
+  }
+}
+
+function renderStaffCommunityPolls() {
+  const feed = document.getElementById('community-feed');
+  if (!staffCommunityPolls.length) {
+    feed.innerHTML = '<div class="empty-state">No polls yet.</div>';
+    return;
+  }
+  feed.innerHTML = staffCommunityPolls.map(poll => {
+    const total = poll.totalVotes;
+    const isActive = poll.status === 'active';
+    const expiresIn = isActive ? Math.max(0, Math.round((new Date(poll.expiresAt) - Date.now()) / 60000)) : 0;
+    const hasVoted = poll.votedOptionId !== null;
+    return `
+      <article class="community-post ${poll.isAlert ? 'is-alert' : ''}">
+        <div class="community-post-head">
+          <div>
+            <div class="community-author">${escapeHtml(poll.authorName)}</div>
+            <div class="community-meta">${fmtDateTime(poll.createdAt)} · ${poll.target === 'all' ? 'Everyone' : escapeHtml(poll.target)} ${isActive ? `· Expires in ${expiresIn}m` : '· Closed'}</div>
+          </div>
+          <span class="community-alert-badge" style="background:${isActive ? 'var(--success)' : 'var(--muted)'};">${isActive ? 'Active' : 'Closed'}</span>
+        </div>
+        <div style="font-weight:600;font-size:15px;margin-bottom:12px;">${escapeHtml(poll.question)}</div>
+        ${poll.options.map(opt => {
+          const pct = total > 0 ? Math.round((poll.counts[opt.id] || 0) / total * 100) : 0;
+          const isWinner = total > 0 && (poll.counts[opt.id] || 0) === Math.max(...Object.values(poll.counts));
+          if (hasVoted || !isActive) {
+            return `
+              <div style="margin-bottom:8px;${poll.votedOptionId === opt.id ? 'font-weight:600;' : ''}">
+                <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:2px;">
+                  <span>${escapeHtml(opt.text)} ${poll.votedOptionId === opt.id ? '✓' : ''}</span>
+                  <span>${poll.counts[opt.id] || 0} (${pct}%)</span>
+                </div>
+                <div style="height:8px;background:var(--bg);border-radius:4px;overflow:hidden;">
+                  <div style="height:100%;width:${pct}%;background:${isWinner ? 'var(--success)' : 'var(--primary-light)'};border-radius:4px;transition:width 0.3s;"></div>
+                </div>
+              </div>
+            `;
+          }
+          return `
+            <div style="margin-bottom:6px;">
+              <button class="btn btn-outline btn-sm" style="width:100%;text-align:left;justify-content:flex-start;padding:8px 12px;" onclick="voteStaffPoll(${poll.id}, ${opt.id})">
+                ${escapeHtml(opt.text)}
+              </button>
+            </div>
+          `;
+        }).join('')}
+        <div style="font-size:12px;color:var(--muted);margin-top:8px;">${total} vote${total === 1 ? '' : 's'} ${hasVoted ? '· You voted' : ''}</div>
+      </article>
+    `;
+  }).join('');
 }
 
 init();

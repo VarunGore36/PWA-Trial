@@ -34,6 +34,8 @@ let allWorkers = [];
 let scheduleMode = 'window';
 let scheduleDays = 3;
 
+let communityFilter = 'posts';
+
 function showTab(name, btn) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -46,8 +48,9 @@ function showTab(name, btn) {
   if (name === 'schedule') loadScheduleView();
   if (name === 'leaves') loadLeaves();
   if (name === 'profile-requests') loadProfileRequests();
-  if (name === 'community') loadCommunityFeed();
+  if (name === 'community') { communityFilter = 'posts'; loadCommunityFeed(); loadCommunityPolls(); }
   if (name === 'logs') loadAdminLogs();
+  if (name === 'reports') initReports();
 }
 
 async function init() {
@@ -71,7 +74,7 @@ async function refreshAdminDashboard() {
   if (activeTab.id === 'tab-schedule') await loadScheduleView();
   if (activeTab.id === 'tab-leaves') await loadLeaves();
   if (activeTab.id === 'tab-profile-requests') await loadProfileRequests();
-  if (activeTab.id === 'tab-community') await loadCommunityFeed();
+  if (activeTab.id === 'tab-community') { await loadCommunityFeed(); await loadCommunityPolls(); }
   if (activeTab.id === 'tab-logs') await loadAdminLogs();
 }
 
@@ -83,6 +86,8 @@ async function loadStats() {
   document.getElementById('s-leaves').textContent = d.pendingLeaves;
   document.getElementById('s-confirm').textContent = d.pendingConfirm;
   document.getElementById('s-today').textContent = d.todayShifts;
+  document.getElementById('s-preconfirmed').textContent = d.preConfirmed || 0;
+  document.getElementById('s-arrived').textContent = d.arrived || 0;
 }
 
 async function loadWorkers() {
@@ -516,6 +521,174 @@ async function loadAdminLogs() {
       <div class="admin-log-type">${escapeHtml(log.type)}</div>
     </article>
   `).join('');
+}
+
+function setCommunityFilter(filter) {
+  communityFilter = filter;
+  document.getElementById('feed-filter-posts').classList.toggle('active', filter === 'posts');
+  document.getElementById('feed-filter-polls').classList.toggle('active', filter === 'polls');
+  document.getElementById('community-feed').innerHTML = filter === 'posts'
+    ? '<div class="empty-state">Loading...</div>'
+    : '<div class="empty-state">Loading polls...</div>';
+  if (filter === 'posts') loadCommunityFeed();
+  else renderCommunityPolls();
+}
+
+function addPollOption() {
+  const container = document.getElementById('poll-options-container');
+  const count = container.querySelectorAll('.poll-option-row').length;
+  if (count >= 10) { document.getElementById('poll-msg').innerHTML = '<div class="alert alert-error">Maximum 10 options</div>'; return; }
+  const div = document.createElement('div');
+  div.className = 'form-group poll-option-row';
+  div.innerHTML = `<label class="form-label">Option ${count + 1}</label><input type="text" class="form-control poll-option-input" placeholder="Option text">`;
+  container.appendChild(div);
+}
+
+function removePollOption() {
+  const container = document.getElementById('poll-options-container');
+  const rows = container.querySelectorAll('.poll-option-row');
+  if (rows.length <= 2) { document.getElementById('poll-msg').innerHTML = '<div class="alert alert-error">Minimum 2 options required</div>'; return; }
+  container.removeChild(rows[rows.length - 1]);
+}
+
+async function createPoll() {
+  const msgEl = document.getElementById('poll-msg');
+  msgEl.innerHTML = '';
+  const question = document.getElementById('poll-question').value.trim();
+  const optionInputs = document.querySelectorAll('.poll-option-input');
+  const options = [...optionInputs].map(i => i.value.trim()).filter(v => v);
+  const target = document.getElementById('poll-target').value;
+  const durationMinutes = document.getElementById('poll-duration').value;
+  const isAlert = document.getElementById('poll-alert').checked;
+
+  if (!question) { msgEl.innerHTML = '<div class="alert alert-error">Poll question is required</div>'; return; }
+  if (options.length < 2) { msgEl.innerHTML = '<div class="alert alert-error">At least 2 non-empty options required</div>'; return; }
+
+  const res = await fetch('/api/community/poll', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, options: JSON.stringify(options), target, durationMinutes, isAlert: String(isAlert) })
+  });
+  const data = await res.json();
+  if (!res.ok) { msgEl.innerHTML = `<div class="alert alert-error">${data.error}</div>`; return; }
+
+  document.getElementById('poll-question').value = '';
+  document.querySelectorAll('.poll-option-input').forEach((i, idx) => { if (idx > 1) i.closest('.poll-option-row').remove(); else i.value = ''; });
+  document.getElementById('poll-alert').checked = false;
+  msgEl.innerHTML = '<div class="alert alert-success">Poll launched!</div>';
+  if (communityFilter === 'polls') renderCommunityPolls();
+}
+
+let communityPolls = [];
+
+async function loadCommunityPolls() {
+  const res = await fetch('/api/community/polls');
+  if (!res.ok) return;
+  communityPolls = await res.json();
+  if (communityFilter === 'polls') renderCommunityPolls();
+}
+
+function renderCommunityPolls() {
+  const feed = document.getElementById('community-feed');
+  if (!communityPolls.length) {
+    feed.innerHTML = '<div class="empty-state">No polls yet.</div>';
+    return;
+  }
+  feed.innerHTML = communityPolls.map(poll => {
+    const total = poll.totalVotes;
+    const isActive = poll.status === 'active';
+    const expiresIn = isActive ? Math.max(0, Math.round((new Date(poll.expiresAt) - Date.now()) / 60000)) : 0;
+    return `
+      <article class="community-post ${poll.isAlert ? 'is-alert' : ''}">
+        <div class="community-post-head">
+          <div>
+            <div class="community-author">${escapeHtml(poll.authorName)}</div>
+            <div class="community-meta">${fmtDateTime(poll.createdAt)} · ${poll.target === 'all' ? 'Everyone' : escapeHtml(poll.target)} ${isActive ? `· Expires in ${expiresIn}m` : '· Closed'}</div>
+          </div>
+          <span class="community-alert-badge" style="background:${isActive ? 'var(--success)' : 'var(--muted)'};">${isActive ? 'Active' : 'Closed'}</span>
+        </div>
+        <div style="font-weight:600;font-size:15px;margin-bottom:12px;">${escapeHtml(poll.question)}</div>
+        ${poll.options.map(opt => {
+          const pct = total > 0 ? Math.round((poll.counts[opt.id] || 0) / total * 100) : 0;
+          const isWinner = total > 0 && (poll.counts[opt.id] || 0) === Math.max(...Object.values(poll.counts));
+          return `
+            <div style="margin-bottom:8px;${poll.votedOptionId === opt.id ? 'font-weight:600;' : ''}">
+              <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:2px;">
+                <span>${escapeHtml(opt.text)} ${poll.votedOptionId === opt.id ? '✓' : ''}</span>
+                <span>${poll.counts[opt.id] || 0} (${pct}%)</span>
+              </div>
+              <div style="height:8px;background:var(--bg);border-radius:4px;overflow:hidden;">
+                <div style="height:100%;width:${pct}%;background:${isWinner ? 'var(--success)' : 'var(--primary-light)'};border-radius:4px;transition:width 0.3s;"></div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+        <div style="font-size:12px;color:var(--muted);margin-top:8px;">${total} vote${total === 1 ? '' : 's'}</div>
+      </article>
+    `;
+  }).join('');
+}
+
+function initReports() {
+  const yearSelect = document.getElementById('report-year');
+  if (yearSelect.options.length === 0) {
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear - 2; y <= currentYear + 1; y++) {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y;
+      if (y === currentYear) opt.selected = true;
+      yearSelect.appendChild(opt);
+    }
+    document.getElementById('report-month').value = String(new Date().getMonth() + 1);
+  }
+  loadReportSummary();
+}
+
+async function loadReportSummary() {
+  const container = document.getElementById('report-summary');
+  const month = document.getElementById('report-month').value;
+  const year = document.getElementById('report-year').value;
+  try {
+    const res = await fetch(`/api/admin/dashboard-stats`);
+    if (!res.ok) return;
+    const stats = await res.json();
+    container.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;">
+        <div><strong style="font-size:24px;color:var(--primary);">${stats.totalWorkers}</strong><br><span style="font-size:12px;color:var(--muted);">Total Workers</span></div>
+        <div><strong style="font-size:24px;color:var(--primary);">${stats.todayShifts}</strong><br><span style="font-size:12px;color:var(--muted);">Today's Shifts</span></div>
+        <div><strong style="font-size:24px;color:var(--success);">${stats.preConfirmed || 0}</strong><br><span style="font-size:12px;color:var(--muted);">Pre-Confirmed Today</span></div>
+        <div><strong style="font-size:24px;color:var(--success);">${stats.arrived || 0}</strong><br><span style="font-size:12px;color:var(--muted);">Arrived Today</span></div>
+        <div><strong style="font-size:24px;color:var(--danger);">${stats.pendingLeaves}</strong><br><span style="font-size:12px;color:var(--muted);">Pending Leaves</span></div>
+      </div>
+      <div style="margin-top:12px;font-size:12px;color:var(--muted);">Download the CSV report for detailed data including gate arrival times and GPS coordinates.</div>
+    `;
+  } catch (e) {
+    container.innerHTML = '<div class="empty-state">Could not load summary.</div>';
+  }
+}
+
+async function downloadReport() {
+  const month = document.getElementById('report-month').value;
+  const year = document.getElementById('report-year').value;
+  const msgEl = document.getElementById('report-msg');
+  msgEl.innerHTML = '<div class="alert alert-info">Generating report...</div>';
+  try {
+    const res = await fetch(`/api/admin/monthly-report?year=${year}&month=${month}`);
+    if (!res.ok) { msgEl.innerHTML = `<div class="alert alert-error">Failed to generate report</div>`; return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `attendance-${year}-${String(month).padStart(2, '0')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    msgEl.innerHTML = '<div class="alert alert-success">Report downloaded!</div>';
+  } catch (e) {
+    msgEl.innerHTML = `<div class="alert alert-error">${e.message}</div>`;
+  }
 }
 
 init();

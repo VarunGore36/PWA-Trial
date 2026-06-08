@@ -141,6 +141,36 @@ router.get('/all-schedules', async (req, res) => {
   }
 });
 
+router.get('/monthly-report', async (req, res) => {
+  try {
+    const year = req.query.year || new Date().getFullYear();
+    const month = req.query.month || (new Date().getMonth() + 1);
+    const rows = await db.getMonthlyAttendanceReport(year, month);
+
+    const headers = ['Name', 'SSID', 'Designation', 'Date', 'Shift', 'Shift Start', 'Shift End', 'Confirmation', 'Pre-Confirmed At', 'Gate Arrived At', 'GPS Lat', 'GPS Lng', 'Distance From Gate (m)', 'Attendance', 'Leave Reason'];
+
+    let csv = headers.join(',') + '\n';
+    const esc = v => {
+      const s = String(v == null ? '' : v);
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    for (const row of rows) {
+      csv += headers.map(h => esc(row[h === 'Distance From Gate (m)' ? 'gateDistance' : ({
+        'Name': 'name', 'SSID': 'ssid', 'Designation': 'designation', 'Date': 'date', 'Shift': 'shift',
+        'Shift Start': 'shiftStart', 'Shift End': 'shiftEnd', 'Confirmation': 'confirmation',
+        'Pre-Confirmed At': 'preConfirmedAt', 'Gate Arrived At': 'gateConfirmedAt',
+        'GPS Lat': 'gateLat', 'GPS Lng': 'gateLng', 'Attendance': 'attendance', 'Leave Reason': 'leaveReason'
+      })[h] || h])).join(',') + '\n';
+    }
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="attendance-${year}-${String(month).padStart(2, '0')}.csv"`);
+    res.send('\uFEFF' + csv);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 router.post('/create-user', async (req, res) => {
   try {
     const { name, phone, ssid, email, designation, password } = req.body;

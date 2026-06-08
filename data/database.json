@@ -81,8 +81,8 @@
       "email": "manojpal1996pal@gmail.com",
       "designation": "SG",
       "priority": 7,
-      "mustChangePassword": true,
-      "passwordHash": "$2a$10$gvD8Yt1mTO.RvdGpAz4WSOUCrNvODRMxJ5PJiSilfzIdSA2G9lO2q",
+      "mustChangePassword": false,
+      "passwordHash": "$2a$10$yHo21UrA45rdEByM5.gbeuMEG7PWrn.qXSAgpoSGvs3WI2haaokwO",
       "createdAt": "2026-05-28T12:01:41.087Z",
       "updatedAt": "2026-05-30T09:43:53.371Z"
     },
@@ -18743,6 +18743,16 @@
       },
       "updatedAt": "2026-05-31T08:24:20.933Z",
       "createdAt": "2026-05-31T08:24:20.933Z"
+    },
+    {
+      "userId": 8,
+      "endpoint": "https://fcm.googleapis.com/fcm/send/fVLwCsP8Mfg:APA91bHSkTGCY9e4UDRMIWiD6ytZRSTxdnWFSJnBB5B1ctR2dqQ-0cUJ-TB33wLOlQkN_OZA4WMwKHcves0dxEJQS1IGF0IHkxysUVH5moVtSrNiSeE1zZ2vZjX3uqT6PilhFaNb43ZQ",
+      "keys": {
+        "p256dh": "BL7KjpO232drzT0Lkd5LeLXD6NUcRr_0cTWnm55E9vU3NRZMadSWnIDVDCAW6KXHS7SGrFFVDKyaOCEwZe_MCTg",
+        "auth": "XJs7umoZBat7h0LRNLDR2w"
+      },
+      "updatedAt": "2026-06-04T16:58:29.455Z",
+      "createdAt": "2026-06-04T16:58:29.455Z"
     }
   ],
   "sentShiftNotifications": [],
@@ -18767,5 +18777,9 @@
   "shiftReassignments": [],
   "adminActivityLogs": [],
   "nextAdminActivityLogId": 1,
-  "temporaryRosterImportedAt": "2026-06-02T11:37:30.046Z"
+  "temporaryRosterImportedAt": "2026-06-02T11:37:30.046Z",
+  "preconfirmations": [],
+  "gateConfirmations": [],
+  "polls": [],
+  "nextPollId": 1
 }
