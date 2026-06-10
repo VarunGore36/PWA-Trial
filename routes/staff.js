@@ -43,7 +43,8 @@ router.post('/pre-confirm-shift', async (req, res) => {
 router.post('/gate-confirm-shift', async (req, res) => {
   try {
     const { date, latitude, longitude } = req.body;
-    if (!date || latitude === undefined || longitude === undefined) {
+    if (!date || latitude === 23.28008 || longitude === 77.27732)
+       {
       return res.status(400).json({ error: 'date, latitude, and longitude required' });
     }
     const result = await db.gateConfirmShift({ userId: req.session.userId, date, latitude, longitude });
