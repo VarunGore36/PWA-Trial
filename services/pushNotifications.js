@@ -99,6 +99,74 @@ async function sendCommunityAlert({ title, body, target }) {
   }
 }
 
+async function sendPushToUser(userId, payload) {
+  await configureWebPush();
+  const subscriptions = await db.getPushSubscriptionsForUsers([userId]);
+  if (!subscriptions.length) return false;
+  let delivered = false;
+  for (const subscription of subscriptions) {
+    try {
+      await webPush.sendNotification(subscriptionFromRecord(subscription), JSON.stringify(payload));
+      delivered = true;
+    } catch (error) {
+      if (error.statusCode === 404 || error.statusCode === 410) {
+        await db.removePushSubscriptionByEndpoint(subscription.endpoint);
+      } else {
+        console.error('Push failed for user ' + userId + ':', error.message);
+      }
+    }
+  }
+  return delivered;
+}
+
+async function sendLeaveStatusNotification(userId, status, date) {
+  await sendPushToUser(userId, {
+    title: 'Leave ' + status,
+    body: 'Your leave request for ' + date + ' has been ' + status + '.',
+    url: '/staff',
+    tag: 'leave-' + status + '-' + userId + '-' + date
+  });
+}
+
+async function sendNewLeaveRequestToAdmin(adminId, workerName, date, reason) {
+  await sendPushToUser(adminId, {
+    title: 'New Leave Request',
+    body: workerName + ' requested leave on ' + date + ': ' + reason,
+    url: '/admin',
+    tag: 'leave-request-' + Date.now(),
+    requireInteraction: true
+  });
+}
+
+async function sendShiftReassignmentNotification(userId, date, shift, reason) {
+  await sendPushToUser(userId, {
+    title: 'Shift Reassigned',
+    body: 'You have been assigned shift ' + shift + ' on ' + date + ' due to ' + reason + '.',
+    url: '/staff',
+    tag: 'reassign-' + userId + '-' + date,
+    requireInteraction: true
+  });
+}
+
+async function sendNewCommunityPostNotification(userId, authorName, text, isAlert) {
+  await sendPushToUser(userId, {
+    title: isAlert ? 'Community Alert' : 'New Community Post',
+    body: authorName + ': ' + (text || '').substring(0, 100),
+    url: '/staff',
+    tag: 'community-post-' + Date.now(),
+    requireInteraction: isAlert
+  });
+}
+
+async function sendNewPollNotification(userId, authorName, question) {
+  await sendPushToUser(userId, {
+    title: 'New Poll',
+    body: authorName + ' created a poll: ' + (question || '').substring(0, 80),
+    url: '/staff',
+    tag: 'poll-' + Date.now()
+  });
+}
+
 function startShiftReminderLoop() {
   if (started) return;
   started = true;
@@ -113,5 +181,11 @@ module.exports = {
   configureWebPush,
   sendCommunityAlert,
   sendDueShiftNotifications,
+  sendPushToUser,
+  sendLeaveStatusNotification,
+  sendNewLeaveRequestToAdmin,
+  sendShiftReassignmentNotification,
+  sendNewCommunityPostNotification,
+  sendNewPollNotification,
   startShiftReminderLoop
 };

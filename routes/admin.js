@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAdmin } = require('../middleware/auth');
+const { sendLeaveStatusNotification, sendShiftReassignmentNotification } = require('../services/pushNotifications');
 
 const router = express.Router();
 
@@ -109,6 +110,20 @@ router.post('/leave-action', async (req, res) => {
     }
     const result = await db.leaveAction({ leaveId: leave_id, action, adminId: req.session.userId });
     if (!result) return res.status(404).json({ error: 'Leave not found' });
+
+    const leaves = await db.getAllLeaves();
+    const leave = leaves.find(l => l.id === Number(leave_id));
+    if (leave) {
+      sendLeaveStatusNotification(leave.userId, action, leave.date)
+        .catch(err => console.error('Failed to send leave notification:', err.message));
+      if (action === 'approved' && result.reassignment && result.reassignment.userId) {
+        sendShiftReassignmentNotification(
+          result.reassignment.userId, leave.date, result.reassignment.assignedShift,
+          'leave approved for ' + leave.workerName
+        ).catch(err => console.error('Failed to send reassignment notification:', err.message));
+      }
+    }
+
     res.json({ success: true, reassignment: result.reassignment || null });
   } catch (e) {
     res.status(500).json({ error: e.message });

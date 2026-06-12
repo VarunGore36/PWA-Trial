@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
-const { sendCommunityAlert } = require('../services/pushNotifications');
+const { sendCommunityAlert, sendNewCommunityPostNotification, sendNewPollNotification } = require('../services/pushNotifications');
 
 const router = express.Router();
 const uploadDir = path.join(__dirname, '..', 'public', 'uploads', 'community');
@@ -72,6 +72,14 @@ router.post('/', upload.array('media', 3), async (req, res) => {
       });
     }
 
+    const recipients = await db.communityRecipients(created.target);
+    for (const recipient of recipients) {
+      if (recipient.id !== req.session.userId) {
+        sendNewCommunityPostNotification(recipient.id, created.authorName, created.text, created.isAlert)
+          .catch(err => console.error('Failed to send community notification:', err.message));
+      }
+    }
+
     res.json({ success: true, post: created });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -122,6 +130,15 @@ router.post('/poll', async (req, res) => {
     if (result === 'empty') return res.status(400).json({ error: 'Poll question is required' });
     if (result === 'too-few-options') return res.status(400).json({ error: 'At least 2 options are required' });
     if (result === 'too-many-options') return res.status(400).json({ error: 'Maximum 10 options allowed' });
+
+    const recipients = await db.communityRecipients(result.target);
+    for (const recipient of recipients) {
+      if (recipient.id !== req.session.userId) {
+        sendNewPollNotification(recipient.id, result.authorName, result.question)
+          .catch(err => console.error('Failed to send poll notification:', err.message));
+      }
+    }
+
     res.json({ success: true, poll: result });
   } catch (e) {
     res.status(500).json({ error: e.message });

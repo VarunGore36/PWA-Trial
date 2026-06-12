@@ -22,9 +22,9 @@ const DECLINE_REPLACEMENT_SHIFTS = {
 };
 
 const GATE_COORDS = {
-  latitude: 23.1547,
-  longitude: 77.2835,
-  radiusMeters: 150
+  latitude: 23.2835,
+  longitude: 77.2773,
+  radiusMeters: 50
 };
 
 function haversineDistance(lat1, lon1, lat2, lon2) {
@@ -1252,6 +1252,24 @@ async function votePoll({ userId, pollId, optionId }) {
   return publicPoll(poll, userId);
 }
 
+async function getAllLeaves() {
+  const db = await readDb();
+  return db.leaves
+    .map(item => {
+      const user = db.users.find(u => u.id === item.userId);
+      return {
+        ...item,
+        workerName: user ? user.name : 'Unknown',
+        workerDesignation: user ? user.designation : ''
+      };
+    })
+    .sort((a, b) => {
+      if (a.status === 'pending' && b.status !== 'pending') return -1;
+      if (a.status !== 'pending' && b.status === 'pending') return 1;
+      return b.createdAt.localeCompare(a.createdAt);
+    });
+}
+
 async function getMonthlyAttendanceReport(year, month) {
   const db = await readDb();
   const monthStr = String(Number(month)).padStart(2, '0');
@@ -1437,6 +1455,7 @@ module.exports = {
   getWorker,
   ensurePushVapidKeys,
   getProfileChangeRequests,
+  getAllLeaves,
   leaveAction,
   listAdminActivityLogs,
   listWorkers,

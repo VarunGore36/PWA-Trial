@@ -343,13 +343,18 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 
 async function getCurrentPosition() {
   if (!navigator.geolocation) {
-    throw new Error('Geolocation is not supported by this browser');
+    throw new Error('Geolocation is not supported by your browser');
   }
   return new Promise((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
-      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      err => reject(err),
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+      pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+      err => {
+        if (err.code === 1) reject(new Error('Location permission denied. Please allow location access in your browser settings.'));
+        else if (err.code === 2) reject(new Error('Location unavailable. Please check your GPS/Location is turned on.'));
+        else if (err.code === 3) reject(new Error('Location request timed out. Please try again.'));
+        else reject(new Error('Could not get your location.'));
+      },
+      { enableHighAccuracy: true, timeout: 20000, maximumAge: 10000 }
     );
   });
 }
@@ -358,32 +363,53 @@ async function refreshGateCheckinStatus() {
   const statusEl = document.getElementById('gate-location-status');
   const coordsEl = document.getElementById('gate-coords-display');
   const btn = document.getElementById('btn-gate-checkin');
-  statusEl.textContent = 'Fetching your location...';
+  statusEl.innerHTML = '<span style="color:var(--muted);">Getting your location...</span>';
   btn.disabled = true;
+  coordsEl.textContent = '';
 
   try {
     const pos = await getCurrentPosition();
     currentPosition = pos;
     const dist = Math.round(haversineDistance(pos.lat, pos.lng, gateConfig.latitude, gateConfig.longitude));
-    coordsEl.textContent = `Your location: ${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)} · Distance from gate: ${dist}m · Allowed radius: ${gateConfig.radiusMeters}m`;
+    const accuracy = Math.round(pos.accuracy || 0);
+
+    coordsEl.innerHTML = 'Your location: ' + pos.lat.toFixed(6) + ', ' + pos.lng.toFixed(6) +
+      (accuracy > 0 ? ' &middot; GPS accuracy: ~' + accuracy + 'm' : '') +
+      ' &middot; Distance from gate: <strong>' + dist + 'm</strong>' +
+      ' &middot; Required: within ' + gateConfig.radiusMeters + 'm';
 
     if (dist <= gateConfig.radiusMeters) {
-      statusEl.innerHTML = '<span style="color:var(--success);font-weight:600;">✓ You are at the gate area</span>';
+      statusEl.innerHTML = '<span style="color:var(--success);font-weight:600;">&#10003; You are at the gate area (' + dist + 'm away)</span>';
       btn.disabled = false;
+      btn.textContent = 'Check In At Gate';
     } else {
-      statusEl.innerHTML = `<span style="color:var(--danger);">✗ You are ${dist}m from the gate. Please reach the gate area (within ${gateConfig.radiusMeters}m).</span>`;
+      var direction = getDirectionHint(pos.lat, pos.lng, gateConfig.latitude, gateConfig.longitude);
+      statusEl.innerHTML = '<span style="color:var(--danger);">&#10007; You are ' + dist + 'm from the gate. ' + direction + '</span>';
       btn.disabled = true;
+      btn.textContent = 'Too Far From Gate';
     }
   } catch (err) {
-    statusEl.textContent = 'Could not get location. Please enable location access and try again.';
-    coordsEl.textContent = err.message || 'Location unavailable';
+    statusEl.innerHTML = '<span style="color:var(--danger);">' + (err.message || 'Could not get location.') + '</span>';
+    coordsEl.textContent = '';
     btn.disabled = true;
+    btn.textContent = 'Check In At Gate';
   }
+}
+
+function getDirectionHint(userLat, userLng, gateLat, gateLng) {
+  var dLat = gateLat - userLat;
+  var dLng = gateLng - userLng;
+  var directions = [];
+  if (Math.abs(dLat) > 0.0002) directions.push(dLat > 0 ? 'north' : 'south');
+  if (Math.abs(dLng) > 0.0002) directions.push(dLng > 0 ? 'east' : 'west');
+  if (directions.length === 0) return 'You are very close. Try again.';
+  return 'Head ' + directions.join('-') + ' toward the main gate.';
 }
 
 async function gateConfirmShift() {
   const today = todayStr();
   const btn = document.getElementById('btn-gate-checkin');
+  const statusEl = document.getElementById('gate-location-status');
   btn.disabled = true;
   btn.textContent = 'Checking in...';
 
@@ -392,7 +418,7 @@ async function gateConfirmShift() {
     try {
       pos = await getCurrentPosition();
     } catch (err) {
-      document.getElementById('gate-location-status').textContent = 'Could not get location. Please try again.';
+      statusEl.innerHTML = '<span style="color:var(--danger);">' + (err.message || 'Could not get location.') + '</span>';
       btn.disabled = false;
       btn.textContent = 'Check In At Gate';
       return;
@@ -410,7 +436,7 @@ async function gateConfirmShift() {
     document.getElementById('gate-checkin-card').style.display = 'none';
     document.getElementById('confirm-list').insertAdjacentHTML(
       'afterbegin',
-      `<div class="alert alert-success">✓ Checked in at gate (${data.distance}m from gate). Attendance marked as Present.</div>`
+      '<div class="alert alert-success">&#10003; Checked in at gate (' + Number(data.distance) + 'm from gate). Attendance marked as Present.</div>'
     );
     await loadPendingConfirm();
     await loadSchedule();
@@ -421,12 +447,12 @@ async function gateConfirmShift() {
   btn.textContent = 'Check In At Gate';
 
   if (res.status === 403) {
-    document.getElementById('gate-location-status').innerHTML =
-      `<span style="color:var(--danger);">✗ ${data.error}</span>`;
+    statusEl.innerHTML = '<span style="color:var(--danger);">&#10007; ' + data.error + '</span>';
+    refreshGateCheckinStatus();
   } else {
     document.getElementById('confirm-list').insertAdjacentHTML(
       'afterbegin',
-      `<div class="alert alert-error">${data.error || 'Gate check-in failed.'}</div>`
+      '<div class="alert alert-error">' + (data.error || 'Gate check-in failed.') + '</div>'
     );
   }
 }

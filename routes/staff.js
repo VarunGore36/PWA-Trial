@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../db');
 const { requireAuth } = require('../middleware/auth');
-const { configureWebPush } = require('../services/pushNotifications');
+const { configureWebPush, sendNewLeaveRequestToAdmin, sendShiftReassignmentNotification } = require('../services/pushNotifications');
 
 const router = express.Router();
 
@@ -43,7 +43,7 @@ router.post('/pre-confirm-shift', async (req, res) => {
 router.post('/gate-confirm-shift', async (req, res) => {
   try {
     const { date, latitude, longitude } = req.body;
-    if (!date || latitude === 23.28008 || longitude === 77.27732)
+    if (!date || latitude === undefined || longitude === undefined)
        {
       return res.status(400).json({ error: 'date, latitude, and longitude required' });
     }
@@ -77,6 +77,16 @@ router.post('/confirm-shift', async (req, res) => {
     if (result === 'missing') return res.status(404).json({ error: 'No schedule for this date' });
     if (result === 'not-today') return res.status(400).json({ error: 'Only today\'s shift can be confirmed or declined' });
     if (result === 'blocked') return res.status(400).json({ error: 'Only A, B, C, and G shifts can be confirmed' });
+
+    if (status === 'declined' && result.reassignment && result.reassignment.userId) {
+      const user = await db.getWorker(req.session.userId);
+      const declinedByName = user ? user.user.name : 'A staff member';
+      sendShiftReassignmentNotification(
+        result.reassignment.userId, date, result.reassignment.assignedShift,
+        declinedByName + ' declining their shift'
+      ).catch(err => console.error('Failed to send reassignment notification:', err.message));
+    }
+
     res.json({ success: true, reassignment: result.reassignment || null });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -89,6 +99,15 @@ router.post('/leave-request', async (req, res) => {
     if (!date || !reason) return res.status(400).json({ error: 'Date and reason required' });
     const created = await db.createLeave({ userId: req.session.userId, date, reason });
     if (!created) return res.status(409).json({ error: 'Leave already submitted for this date' });
+
+    const user = await db.getWorker(req.session.userId);
+    const workerName = user ? user.user.name : 'A staff member';
+    const admins = await db.readDb().then(d => d.users.filter(u => u.role === 'admin'));
+    for (const admin of admins) {
+      sendNewLeaveRequestToAdmin(admin.id, workerName, date, reason)
+        .catch(err => console.error('Failed to send leave notification to admin:', err.message));
+    }
+
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
